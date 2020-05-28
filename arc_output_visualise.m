@@ -1,7 +1,10 @@
+%%
+% created by Charlie Jeynes 2019
 
 clc
 clear
 close all
+
 
 %% open the .nc file 
 source = '/Users/charliejeynes/Projects/arc/output/mcrt/lm_abs_dens.nc'
