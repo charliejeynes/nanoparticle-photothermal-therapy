@@ -4,6 +4,8 @@ This repository holds all code related to nanoparticle-photothermal-therapy curr
 
 Monte Carlo simulations of light propagating through tissue is carried out in 'arc' (see pinned project from Freddy Wordingham on my git homepage)
 
+The simulations are visualised and analysed using the 'arc_visualise.m' file. 
+
 Heat diffusion simulations, using input from 'arc', are found in the 'heat_diffusion.m' file
 
 The use of the above is described in Jeynes et al. Biomolecules 2019, 9(8), 343; https://doi.org/10.3390/biom9080343
