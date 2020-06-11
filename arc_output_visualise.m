@@ -7,24 +7,21 @@ close all
 
 
 %% open the .nc file 
-source = '/Users/charliejeynes/Projects/arc/output/mcrt/lm_abs_dens.nc'
+% source = '/Users/charliejeynes/Projects/arc/output/mcrt/lm_abs_dens.nc'
 % source = '/Users/charliejeynes/Projects/arc/output/mcrt/mat_map_ptfe.nc'
 % source = '/Users/charliejeynes/Projects/arc/output/mcrt/interfaces.nc'
+% source = '/Users/charliejeynes/Projects/absorption_density.nc'
+source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_density.nc'
+% source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
 ncid = netcdf.open(source); 
 data = netcdf.getVar(ncid,0); 
 netcdf.close(ncid); 
 
+%%
+
 xslice = []
-yslice = [20]
-zslice = []
-slice(data,xslice,yslice,zslice) 
-% caxis([0,2e6])% create and label the colorbar
-cmap = jet(20);
-% cmap = flipud(cmap(1:10,:));
-% cmap(1,:) = [1,1,1];
-colormap(cmap);
-colorbar
-% cb.Label.String = 'absorb';
+yslice = []
+zslice = [32]
 
 hss = slice(data,xslice,yslice,zslice); 
 xs = get(hss,'XData');
@@ -32,15 +29,56 @@ ys = get(hss,'YData');
 zs = get(hss,'ZData');
 cs = get(hss,'CData');
 
-figure, 
-imagesc(cs(:, :));
-% caxis([0,1e6])% create and label the colorbar
-cmap = hot(25);
-colormap(cmap);
-colorbar
-% cb.Label.String = 'absorb';
-title('absorbance density - 1W laser, PTFE inMat, intralipid outMat')
+cs_log_rotate = rot90(log10(cs), 2); 
 
+figure, 
+imagesc(cs_log_rotate(:, :));
+caxis([0,8.1])% create and label the colorbar
+% imagesc(cs(:, :));
+% caxis([0,1e8])% create and label the colorbar
+cmap = jet();
+colormap(cmap);
+cb=colorbar
+cb.Label.String = 'absorbance density (W/m^3) (log10)';
+%cb.Label.String = 'hits';
+xlabel('mm');
+xticklabels({'0','5','10','15','20','25','30','35', '40'});
+xticks(0:8:64)
+yticklabels({'0','5','10','15','20','25','30','35', '40'});
+yticks(0:8:64)
+ylabel('mm');
+title('tumour')
+
+
+% xticklabels({'0','1','2','3','4','5','6','7', '8', '9', '10'});
+% xticklabels({'0','2.5','5','7.5','10','12.5','15','17.5', '20'});
+% xticks(0:8:64)
+% yticklabels({'0','2.5','5','7.5','10','12.5','15','17.5', '20'});
+% yticks(0:8:64)
+% what is the scale of the image 
+scale_mm = (40 / 64) * 8
+%%
+64/8
+%% get a 3D image
+xslice = []
+yslice = [32]
+zslice = [32]
+slice(log10(rot90(data)),xslice,yslice,zslice) 
+% caxis([0,2e6])% create and label the colorbar
+cmap = jet();
+cb=colorbar
+cb.Label.String = 'absorbance density (W/m^3) (log10)';
+xlabel('mm');
+% xticklabels({'0','1','2','3','4','5','6','7', '8', '9', '10'});
+xticklabels({'0','2.5','5','7.5','10','12.5','15','17.5', '20'});
+xticks(0:8:64)
+yticklabels({'0','2.5','5','7.5','10','12.5','15','17.5', '20'});
+yticks(0:8:64)
+ylabel('mm');
+zticklabels({'0','2.5','5','7.5','10','12.5','15','17.5', '20'});
+zticks(0:8:64)
+zlabel('mm');
+title('tumour')
 
 %% plot a single image 
 figure, 
