@@ -2,6 +2,13 @@ clc
 clear 
 close all
 
+%% to read in data from .nc file (11th June 2020)
+
+% matrix = rand(201,201);
+% matrix(matrix(:, 115) > 0.5) = 0;
+
+plus_NP = data; 
+
 %% matlab question ask 
 
 % matrix = rand(201,201);
