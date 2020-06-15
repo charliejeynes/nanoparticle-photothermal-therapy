@@ -7,7 +7,10 @@ close all
 % matrix = rand(201,201);
 % matrix(matrix(:, 115) > 0.5) = 0;
 
-plus_NP = data; 
+minus_NP = data; 
+
+figure, 
+imagesc(minus_NP(:, :, 32)); 
 
 %% matlab question ask 
 
@@ -120,65 +123,76 @@ rot_plus_NP_noP = rot90(plus_NP_noP, 1);
 
 %% specify the medium parameters
 % create the computational grid
-Nx = 201;           % number of grid points in the x (row) direction
-Ny = 201;           % number of grid points in the y (column) direction
+Nx = 65;           % number of grid points in the x (row) direction
+Ny = 65;           % number of grid points in the y (column) direction
 % Nz = 201; 
-dx = 1e-4;        % grid point spacing in the x direction [m]
-dy = 1e-4;        % grid point spacing in the y direction [m]
+
+% calculate grid point spacing 
+dx =  (40 * 1e-3) / 65 % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
+dy =  (40 * 1e-3) / 65
+
+dx = dx;        % grid point spacing in the x direction [m]
+dy = dy;        % grid point spacing in the y direction [m]
 % dz =  1e-4;
+
 kgrid = kWaveGrid(Nx, dx, Ny, dy);
 
 % define medium properties
-medium.density = ones(201, 201); 
+medium.density = ones(Nx, Ny); 
 medium.density(:, :)  = 1079;     % of tissue [kg/m^3]
-medium.density(:, 120:201)  = 1079; % of air [kg/m^3]
+% medium.density(:, 120:201)  = 1079; % of air [kg/m^3]
 figure, imagesc(medium.density)
 
-medium.thermal_conductivity = ones(201, 201); 
+medium.thermal_conductivity = ones(Nx, Ny); 
 medium.thermal_conductivity(:, :)  = 0.52;     % tissue [W/(m.K)]
-medium.thermal_conductivity(:, 120:201)  = 0.52;  % of air [W/(m.K)]
+% medium.thermal_conductivity(:, 120:201)  = 0.52;  % of air [W/(m.K)]
 
 
-medium.specific_heat = ones(201, 201);
+medium.specific_heat = ones(Nx, Ny);
 medium.specific_heat(:, :)   = 3540;     % of tissue [J/(kg.K)]
-medium.specific_heat(:, 120:201)  = 3540;        % of air [J/(kg.K)]
+% medium.specific_heat(:, 120:201)  = 3540;        % of air [J/(kg.K)]
 
 % define medium properties related to perfusion
-medium.blood_density                = ones(201, 201);     % [kg/m^3]
+medium.blood_density                = ones(Nx, Ny);     % [kg/m^3]
 medium.blood_density(:, :)          = 1060;     % [kg/m^3]
-medium.blood_density(:, 120:201)    = 1060;     % [kg/m^3]
+% medium.blood_density(:, 120:201)    = 1060;     % [kg/m^3]
 
-medium.blood_specific_heat          = ones(201, 201);     % [J/(kg.K)]
+medium.blood_specific_heat          = ones(Nx, Ny);     % [J/(kg.K)]
 medium.blood_specific_heat(:, :)    = 3617;     % [J/(kg.K)]
-medium.blood_specific_heat(:, 120:201)    = 3617;  % [J/(kg.K)]
+% medium.blood_specific_heat(:, 120:201)    = 3617;  % [J/(kg.K)]
 
-medium.blood_perfusion_rate         = ones(201, 201);    % [1/s]
+medium.blood_perfusion_rate         = ones(Nx, Ny);    % [1/s]
 medium.blood_perfusion_rate(:, :)   = 0.01;     % [1/s]
-medium.blood_perfusion_rate(:, 120:201) = 0.01;     % [1/s]
+% medium.blood_perfusion_rate(:, 120:201) = 0.01;     % [1/s]
 
-medium.blood_ambient_temperature    = ones(201, 201);       % [degC]
+medium.blood_ambient_temperature    = ones(Nx, Ny);       % [degC]
 medium.blood_ambient_temperature(:, :)    = 37;       % [degC]
-medium.blood_ambient_temperature(:, 120:201)   = 37;       % [degC]
+% medium.blood_ambient_temperature(:, 120:201)   = 37;       % [degC]
 
 
 %% get kdiff for the control 1 SECOND
-T0 = 37 .* ones(201, 201); 
-T0(:, 120:201) = 37 ; 
+T0 = 37 .* ones(65, 65); 
+% T0(:, 120:201) = 37 ; 
 figure, imagesc(T0)
 source.T0 = T0; 
-source.Q = (minus_NP(:, : ,100)./2); % account for our laser which is 2 times more intense,
+
+% testSource = zeros(65,65); 
+% testSource(20:30, 20:30) = 0.9e6; 
+% source.Q = testSource;
+
+source.Q = (minus_NP(:, : ,32)); 
 % set input args
 input_args = {'PlotScale', [37, 55]};
 
 % set up the sensor 
 sensor.mask = zeros(Nx, Ny);
-sensor.mask(100, :) = 1;
+sensor.mask(22, :) = 1;
 
 % create kWaveDiffusion object
 kdiff_control_1 = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
 
 % % take time steps (temperature can be accessed as kdiff.T)
-Nt = 1; 
+Nt = 60; 
 dt = 1;
 kdiff_control_1.takeTimeStep(Nt, dt);
 % % 
