@@ -154,15 +154,25 @@ beamArea * powerNeeded
 clc
 clear 
 close all
+
+% to read in data from .nc file (11th June 2020)
+file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
+% source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
+ncid = netcdf.open(file); 
+data = netcdf.getVar(ncid,0); 
+netcdf.close(ncid);
+
+res = size(data);  % get the resolution (size) of the data cube
+
 % specify the medium parameters
 % create the computational grid
-Nx = 100;           % number of grid points in the x (row) direction
-Ny = 100;           % number of grid points in the y (column) direction
+Nx = res(1);           % number of grid points in the x (row) direction
+Ny = res(2);           % number of grid points in the y (column) direction
 % Nz = 201; 
 
 % calculate grid point spacing 
-dx =  (20 * 1e-3) / 100 % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
-dy =  (20 * 1e-3) / 100
+dx =  (20 * 1e-3) / res(1) % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
+dy =  (20 * 1e-3) / res(2)
 
 dx = dx;        % grid point spacing in the x direction [m]
 dy = dy;        % grid point spacing in the y direction [m]
@@ -211,21 +221,13 @@ medium.blood_ambient_temperature(:, :)    = 37;       % [degC]
 % medium.blood_ambient_temperature(:, airStart:end)   = 22;       % [degC]
 % medium.blood_ambient_temperature(airStart:end, :)   = 22;      % of air [degC]
 
-
-% to read in data from .nc file (11th June 2020)
-file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
-% source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
-ncid = netcdf.open(file); 
-data = netcdf.getVar(ncid,0); 
-netcdf.close(ncid);
-
 minus_NP = data; % divide by 2 top take account change in spot size
 
 figure,
 subplot(1, 2, 1)
 log_minus_NP = log10(minus_NP); 
 % imagesc(rot90(minus_NP(:, :, 100))); %check what it looks like
-imagesc(log_minus_NP(:, :, 50)); %check what it looks like
+imagesc(log_minus_NP(:, :, (round(res(3)/2)))); %check what it looks like
 caxis([0,7])% create and label the colorbar
 % caxis([1e6,5e7])% create and label the colorbar
 cmap = jet();
@@ -236,12 +238,12 @@ cb.Label.String = 'absorbance density (W/m^3) (log10)';
 % a = minus_NP(57, 33, 32)
 subplot(1,2,2) 
 % imagesc(rot90(minus_NP(:, :, 32),2));
-imagesc(minus_NP(:, :, 50));%check what it looks like
+imagesc(minus_NP(:, :, (round(res(3)/2))));%check what it looks like
 colorbar
 
 % get kdiff for the control 1 SECOND
 
-T0 = 37 .* ones(100, 100); 
+T0 = 37 .* ones(Nx, Ny); 
 % T0(:, 120:201) = 37 ; 
 figure, imagesc(T0)
 source.T0 = T0; 
@@ -250,7 +252,7 @@ source.T0 = T0;
 % testSource(30:39, 20:30) = 5e6; 
 % source.Q = testSource;
 
-source.Q = (minus_NP(:, : ,50)); 
+source.Q = (minus_NP(:, : ,(round(res(3)/2)))); 
 % set input args
 input_args = {'PlotScale', [37, 50]};
 
