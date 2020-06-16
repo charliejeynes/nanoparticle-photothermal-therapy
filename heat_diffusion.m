@@ -2,6 +2,14 @@ clc
 clear 
 close all
 
+%% to calculate the beamspot in W/cm^2
+
+beamRadius = 0.5;  % beamspot radius in cm
+beamArea = pi*(beamRadius^2)
+powerNeeded = 1/beamArea
+
+beamArea * powerNeeded
+
 %% to read in data from .nc file (11th June 2020)
 
 % matrix = rand(201,201);
@@ -24,6 +32,13 @@ imagesc(minus_NP(:, :, 32));
 % tumour_plusAU = 1.07+2.3 
 % muliplied = tumour_plusAU * 3
 % final_OD_GNRs = 10.1 - 2.3
+
+%% Image the absorb cube after loading in manually
+absorbCube = absorbCube; % divide by 2 top take account change in spot size
+a = absorbCube(97, 139, 32)
+figure, 
+imagesc(rot90(absorbCube(:, :, 101))); %check what it looks like
+
 
 %% Hack the absorb cube to give plus and minus
 % REMEMBER TO LOAD THESE IN SEQUENTIALLY
@@ -170,7 +185,20 @@ medium.blood_ambient_temperature(:, :)    = 37;       % [degC]
 % medium.blood_ambient_temperature(:, 120:201)   = 37;       % [degC]
 
 
+%% to read in data from .nc file (11th June 2020)
+file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
+% source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
+ncid = netcdf.open(file); 
+data = netcdf.getVar(ncid,0); 
+netcdf.close(ncid);
+
+minus_NP = data; % divide by 2 top take account change in spot size
+a = minus_NP(57, 33, 32)
+figure, 
+imagesc(rot90(minus_NP(:, :, 32),2)); %check what it looks like
+
 %% get kdiff for the control 1 SECOND
+
 T0 = 37 .* ones(65, 65); 
 % T0(:, 120:201) = 37 ; 
 figure, imagesc(T0)
@@ -180,7 +208,7 @@ source.T0 = T0;
 % testSource(20:30, 20:30) = 0.9e6; 
 % source.Q = testSource;
 
-source.Q = (minus_NP(:, : ,32)); 
+source.Q = (minus_NP(:, : ,32) / 2); 
 % set input args
 input_args = {'PlotScale', [37, 55]};
 
