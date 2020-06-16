@@ -149,16 +149,20 @@ beamArea * powerNeeded
 % % set(gca, 'xlim', 200)
 % xlim([1 200])
 % hold off
+%%
 
-%% specify the medium parameters
+clc
+clear 
+close all
+% specify the medium parameters
 % create the computational grid
-Nx = 65;           % number of grid points in the x (row) direction
-Ny = 65;           % number of grid points in the y (column) direction
+Nx = 100;           % number of grid points in the x (row) direction
+Ny = 100;           % number of grid points in the y (column) direction
 % Nz = 201; 
 
 % calculate grid point spacing 
-dx =  (20 * 1e-3) / 65 % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
-dy =  (20 * 1e-3) / 65
+dx =  (20 * 1e-3) / 100 % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
+dy =  (20 * 1e-3) / 100
 
 dx = dx;        % grid point spacing in the x direction [m]
 dy = dy;        % grid point spacing in the y direction [m]
@@ -173,18 +177,18 @@ airStart = 40;
 medium.density = ones(Nx, Ny); 
 medium.density(:, :)  = 1079;     % of tissue [kg/m^3]
 % medium.density(:, airStart:end)  = 1.255; % of air [kg/m^3]
-medium.density(airStart:end, :)  = 1.255; % of air [kg/m^3]
+% medium.density(airStart:end, :)  = 1.255; % of air [kg/m^3]
 figure, imagesc(medium.density)
 
 medium.thermal_conductivity = ones(Nx, Ny); 
 medium.thermal_conductivity(:, :)  = 0.52;     % tissue [W/(m.K)]
 % medium.thermal_conductivity(:, airStart:end)  = 26.02;  % of air [W/(m.K)]
-medium.thermal_conductivity(airStart:end,:)  = 26.02;  % of air [W/(m.K)]
+% medium.thermal_conductivity(airStart:end,:)  = 26.02;  % of air [W/(m.K)]
 
 medium.specific_heat = ones(Nx, Ny);
 medium.specific_heat(:, :)   = 3540;     % of tissue [J/(kg.K)]
 % medium.specific_heat(:, airStart:end)  = 0718;        % of air [J/(kg.K)]
-medium.specific_heat(airStart:end, :)  = 718;        % of air [J/(kg.K)]
+% medium.specific_heat(airStart:end, :)  = 718;        % of air [J/(kg.K)]
 
 % define medium properties related to perfusion
 medium.blood_density                = ones(Nx, Ny);     % [kg/m^3]
@@ -195,20 +199,20 @@ medium.blood_density(airStart:end, :)    = 0;     % of air [kg/m^3]
 medium.blood_specific_heat          = ones(Nx, Ny);     % [J/(kg.K)]
 medium.blood_specific_heat(:, :)    = 3617;     % [J/(kg.K)]
 % medium.blood_specific_heat(:, airStart:end)    = 0;  % [J/(kg.K)]
-medium.blood_specific_heat(airStart:end, :)    = 0;  % of air [J/(kg.K)]
+% medium.blood_specific_heat(airStart:end, :)    = 0;  % of air [J/(kg.K)]
 
 medium.blood_perfusion_rate         = ones(Nx, Ny);    % [1/s]
 medium.blood_perfusion_rate(:, :)   = 0.01;     % [1/s]
 % medium.blood_perfusion_rate(:, airStart:end) = 0;     % [1/s]
-medium.blood_perfusion_rate(airStart:end, :) = 0;     % of air [1/s]
+% medium.blood_perfusion_rate(airStart:end, :) = 0;     % of air [1/s]
 
 medium.blood_ambient_temperature    = ones(Nx, Ny);       % [degC]
 medium.blood_ambient_temperature(:, :)    = 37;       % [degC]
 % medium.blood_ambient_temperature(:, airStart:end)   = 22;       % [degC]
-medium.blood_ambient_temperature(airStart:end, :)   = 22;      % of air [degC]
+% medium.blood_ambient_temperature(airStart:end, :)   = 22;      % of air [degC]
 
 
-%% to read in data from .nc file (11th June 2020)
+% to read in data from .nc file (11th June 2020)
 file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
 % source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
 ncid = netcdf.open(file); 
@@ -216,26 +220,39 @@ data = netcdf.getVar(ncid,0);
 netcdf.close(ncid);
 
 minus_NP = data; % divide by 2 top take account change in spot size
-a = minus_NP(57, 33, 32)
-figure, 
+
+figure,
+subplot(1, 2, 1)
+log_minus_NP = log10(minus_NP); 
+% imagesc(rot90(minus_NP(:, :, 100))); %check what it looks like
+imagesc(log_minus_NP(:, :, 50)); %check what it looks like
+caxis([0,7])% create and label the colorbar
+% caxis([1e6,5e7])% create and label the colorbar
+cmap = jet();
+colormap(cmap);
+cb=colorbar
+cb.Label.String = 'absorbance density (W/m^3) (log10)';
+
+% a = minus_NP(57, 33, 32)
+subplot(1,2,2) 
 % imagesc(rot90(minus_NP(:, :, 32),2));
-imagesc(minus_NP(:, :, 32));%check what it looks like
+imagesc(minus_NP(:, :, 50));%check what it looks like
 colorbar
 
-%% get kdiff for the control 1 SECOND
+% get kdiff for the control 1 SECOND
 
-T0 = 37 .* ones(65, 65); 
+T0 = 37 .* ones(100, 100); 
 % T0(:, 120:201) = 37 ; 
 figure, imagesc(T0)
 source.T0 = T0; 
 
-testSource = zeros(65,65); 
-testSource(30:39, 20:30) = 5e6; 
-source.Q = testSource;
+% testSource = zeros(65,65); 
+% testSource(30:39, 20:30) = 5e6; 
+% source.Q = testSource;
 
-% source.Q = (minus_NP(:, : ,32)); 
+source.Q = (minus_NP(:, : ,50)); 
 % set input args
-input_args = {'PlotScale', [37, 55]};
+input_args = {'PlotScale', [37, 50]};
 
 % set up the sensor 
 sensor.mask = zeros(Nx, Ny);
@@ -245,7 +262,7 @@ sensor.mask(22, :) = 1;
 kdiff_control_1 = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
 
 % % take time steps (temperature can be accessed as kdiff.T)
-Nt = 300; 
+Nt = 600; 
 dt = 1;
 kdiff_control_1.takeTimeStep(Nt, dt);
 % % 
