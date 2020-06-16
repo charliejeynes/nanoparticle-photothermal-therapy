@@ -4,9 +4,9 @@ close all
 
 %% to calculate the beamspot in W/cm^2
 
-beamRadius = 0.5;  % beamspot radius in cm
+beamRadius = 0.3;  % beamspot radius in cm
 beamArea = pi*(beamRadius^2)
-powerNeeded = 1/beamArea
+powerNeeded_1W_cm2 = 1/beamArea  % this is to convert for 1W/cm^2 as is often quioted in the papers
 
 beamArea * powerNeeded
 
@@ -14,11 +14,11 @@ beamArea * powerNeeded
 
 % matrix = rand(201,201);
 % matrix(matrix(:, 115) > 0.5) = 0;
-
-minus_NP = data; 
-
-figure, 
-imagesc(minus_NP(:, :, 32)); 
+% 
+% minus_NP = data; 
+% 
+% figure, 
+% imagesc(minus_NP(:, :, 32)); 
 
 %% matlab question ask 
 
@@ -33,35 +33,49 @@ imagesc(minus_NP(:, :, 32));
 % muliplied = tumour_plusAU * 3
 % final_OD_GNRs = 10.1 - 2.3
 
-%% Image the absorb cube after loading in manually
-absorbCube = absorbCube; % divide by 2 top take account change in spot size
-a = absorbCube(97, 139, 32)
-figure, 
-imagesc(rot90(absorbCube(:, :, 101))); %check what it looks like
+
+%% to read data from original run in paper
+% Image the absorb cube after loading in manually
+% load('/Users/charliejeynes/Projects/git_NP_PTT/just_tumour.mat'); 
+% minus_NP = absorbCube;
+% figure, 
+% % minus_NP = log10(minus_NP); 
+% imagesc(rot90(minus_NP(:, :, 100))); %check what it looks like
+% %caxis([0,8.5])% create and label the colorbar
+% caxis([1e6,5e7])% create and label the colorbar
+% cmap = jet();
+% colormap(cmap);
+% cb=colorbar
+% cb.Label.String = 'absorbance density (W/m^3) (log10)';
+% 
+% absorbCube = absorbCube; % divide by 2 top take account change in spot size
+% a = absorbCube(97, 139, 32)
+% figure, 
+% imagesc(rot90(absorbCube(:, :, 101))); %check what it looks like
 
 
 %% Hack the absorb cube to give plus and minus
-% REMEMBER TO LOAD THESE IN SEQUENTIALLY
-load('just_tumour.mat'); 
-minus_NP = absorbCube; 
-clear('absorbCube'); 
-
-%----this can be corrected with the mask------
-% load('3_tumour_plus_Au.mat'); 
+% % REMEMBER TO LOAD THESE IN SEQUENTIALLY
+% load('just_tumour.mat'); 
+% minus_NP = absorbCube; 
+% clear('absorbCube'); 
+% 
+% %----this can be corrected with the mask------
+% % load('3_tumour_plus_Au.mat'); 
+% % plus_NP = absorbCube ; % THIS IS FOR THE MASK
+% % % plus_NP = absorbCube .* 2.5;   % THIS IS WITHOUT THE MASK it works
+% % % plus_NP_2d = plus_NP(: ,:, 100); % THIS IS FOR THE MASK
+% % clear('absorbCube'); 
+% 
+% load('22.5_14.6_e7.mat'); 
 % plus_NP = absorbCube ; % THIS IS FOR THE MASK
 % % plus_NP = absorbCube .* 2.5;   % THIS IS WITHOUT THE MASK it works
 % % plus_NP_2d = plus_NP(: ,:, 100); % THIS IS FOR THE MASK
 % clear('absorbCube'); 
 
-load('22.5_14.6_e7.mat'); 
-plus_NP = absorbCube ; % THIS IS FOR THE MASK
-% plus_NP = absorbCube .* 2.5;   % THIS IS WITHOUT THE MASK it works
-% plus_NP_2d = plus_NP(: ,:, 100); % THIS IS FOR THE MASK
-clear('absorbCube'); 
-
 %% have a look at the numbers 
-
-imtool(plus_NP(: ,: ,100))
+% 
+% imtool(plus_NP(: ,: ,100))
 
 %%  make the mask over the tumour to correct for the GNR OD
 
@@ -87,22 +101,22 @@ imtool(plus_NP(: ,: ,100))
 % colorbar
 
 
-%% fig 2a no perfusion 
-
-% define medium properties
-medium.density              = 1079;     % [kg/m^3]
-medium.thermal_conductivity = 0.52;     % [W/(m.K)]
-medium.specific_heat        = 3540;     % [J/(kg.K)]
-
-% do minusNP
-minus_NP_noP  = minus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
-minus_NP_noP = minus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
-rot_minus_NP_noP = rot90(minus_NP_noP, 1); 
-
-% do plusNP
-plus_NP_noP  = plus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
-plus_NP_noP = plus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
-rot_plus_NP_noP = rot90(plus_NP_noP, 1); 
+% %% fig 2a no perfusion 
+% 
+% % define medium properties
+% medium.density              = 1079;     % [kg/m^3]
+% medium.thermal_conductivity = 0.52;     % [W/(m.K)]
+% medium.specific_heat        = 3540;     % [J/(kg.K)]
+% 
+% % do minusNP
+% minus_NP_noP  = minus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
+% minus_NP_noP = minus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
+% rot_minus_NP_noP = rot90(minus_NP_noP, 1); 
+% 
+% % do plusNP
+% plus_NP_noP  = plus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
+% plus_NP_noP = plus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
+% rot_plus_NP_noP = rot90(plus_NP_noP, 1); 
 
 %% plot all starting no perfusion in subfigure
 % start = 0; 
@@ -143,8 +157,8 @@ Ny = 65;           % number of grid points in the y (column) direction
 % Nz = 201; 
 
 % calculate grid point spacing 
-dx =  (40 * 1e-3) / 65 % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
-dy =  (40 * 1e-3) / 65
+dx =  (20 * 1e-3) / 65 % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
+dy =  (20 * 1e-3) / 65
 
 dx = dx;        % grid point spacing in the x direction [m]
 dy = dy;        % grid point spacing in the y direction [m]
@@ -153,36 +167,45 @@ dy = dy;        % grid point spacing in the y direction [m]
 kgrid = kWaveGrid(Nx, dx, Ny, dy);
 
 % define medium properties
+
+airStart = 40; 
+
 medium.density = ones(Nx, Ny); 
 medium.density(:, :)  = 1079;     % of tissue [kg/m^3]
-% medium.density(:, 120:201)  = 1079; % of air [kg/m^3]
+% medium.density(:, airStart:end)  = 1.255; % of air [kg/m^3]
+medium.density(airStart:end, :)  = 1.255; % of air [kg/m^3]
 figure, imagesc(medium.density)
 
 medium.thermal_conductivity = ones(Nx, Ny); 
 medium.thermal_conductivity(:, :)  = 0.52;     % tissue [W/(m.K)]
-% medium.thermal_conductivity(:, 120:201)  = 0.52;  % of air [W/(m.K)]
-
+% medium.thermal_conductivity(:, airStart:end)  = 26.02;  % of air [W/(m.K)]
+medium.thermal_conductivity(airStart:end,:)  = 26.02;  % of air [W/(m.K)]
 
 medium.specific_heat = ones(Nx, Ny);
 medium.specific_heat(:, :)   = 3540;     % of tissue [J/(kg.K)]
-% medium.specific_heat(:, 120:201)  = 3540;        % of air [J/(kg.K)]
+% medium.specific_heat(:, airStart:end)  = 0718;        % of air [J/(kg.K)]
+medium.specific_heat(airStart:end, :)  = 718;        % of air [J/(kg.K)]
 
 % define medium properties related to perfusion
 medium.blood_density                = ones(Nx, Ny);     % [kg/m^3]
 medium.blood_density(:, :)          = 1060;     % [kg/m^3]
-% medium.blood_density(:, 120:201)    = 1060;     % [kg/m^3]
+% medium.blood_density(:, airStart:end)    = 0;     % [kg/m^3]
+medium.blood_density(airStart:end, :)    = 0;     % of air [kg/m^3]
 
 medium.blood_specific_heat          = ones(Nx, Ny);     % [J/(kg.K)]
 medium.blood_specific_heat(:, :)    = 3617;     % [J/(kg.K)]
-% medium.blood_specific_heat(:, 120:201)    = 3617;  % [J/(kg.K)]
+% medium.blood_specific_heat(:, airStart:end)    = 0;  % [J/(kg.K)]
+medium.blood_specific_heat(airStart:end, :)    = 0;  % of air [J/(kg.K)]
 
 medium.blood_perfusion_rate         = ones(Nx, Ny);    % [1/s]
 medium.blood_perfusion_rate(:, :)   = 0.01;     % [1/s]
-% medium.blood_perfusion_rate(:, 120:201) = 0.01;     % [1/s]
+% medium.blood_perfusion_rate(:, airStart:end) = 0;     % [1/s]
+medium.blood_perfusion_rate(airStart:end, :) = 0;     % of air [1/s]
 
 medium.blood_ambient_temperature    = ones(Nx, Ny);       % [degC]
 medium.blood_ambient_temperature(:, :)    = 37;       % [degC]
-% medium.blood_ambient_temperature(:, 120:201)   = 37;       % [degC]
+% medium.blood_ambient_temperature(:, airStart:end)   = 22;       % [degC]
+medium.blood_ambient_temperature(airStart:end, :)   = 22;      % of air [degC]
 
 
 %% to read in data from .nc file (11th June 2020)
@@ -195,7 +218,9 @@ netcdf.close(ncid);
 minus_NP = data; % divide by 2 top take account change in spot size
 a = minus_NP(57, 33, 32)
 figure, 
-imagesc(rot90(minus_NP(:, :, 32),2)); %check what it looks like
+% imagesc(rot90(minus_NP(:, :, 32),2));
+imagesc(minus_NP(:, :, 32));%check what it looks like
+colorbar
 
 %% get kdiff for the control 1 SECOND
 
@@ -204,11 +229,11 @@ T0 = 37 .* ones(65, 65);
 figure, imagesc(T0)
 source.T0 = T0; 
 
-% testSource = zeros(65,65); 
-% testSource(20:30, 20:30) = 0.9e6; 
-% source.Q = testSource;
+testSource = zeros(65,65); 
+testSource(30:39, 20:30) = 5e6; 
+source.Q = testSource;
 
-source.Q = (minus_NP(:, : ,32) / 2); 
+% source.Q = (minus_NP(:, : ,32)); 
 % set input args
 input_args = {'PlotScale', [37, 55]};
 
@@ -220,7 +245,7 @@ sensor.mask(22, :) = 1;
 kdiff_control_1 = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
 
 % % take time steps (temperature can be accessed as kdiff.T)
-Nt = 60; 
+Nt = 300; 
 dt = 1;
 kdiff_control_1.takeTimeStep(Nt, dt);
 % % 
