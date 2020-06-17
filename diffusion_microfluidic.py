@@ -5,9 +5,10 @@ Created on Fri Nov 22 11:08:12 2019
 
 @author: charliejeynes
 
-compared to version 5 I have changed the pixel to micron scales to get it right
-it was right there are about 10x less from pixels to mm
-also I have done some gold nanorod / gold nanoshell based on their diffusion coefficeint
+This script simulates diffusion of 40 kDa Dextran, using known parameters, and compares the simulation 
+to timelapse microscopy data (in particular an image taken at 2 minutes after diffusion of the dextran from 
+vascular channel into the tissue chamber)
+
 """
 
 import numpy as np
@@ -15,34 +16,22 @@ import matplotlib.pyplot as plt
 import skimage.io as skio
 from skimage.color import rgb2gray
 from skimage.transform import rescale, resize, downscale_local_mean
-# from skimage import data, img_as_float
-# from skimage.metrics import structural_similarity as ssim
-
-# import pkgutil
-# import skimage
-# package=skimage
-# for importer, modname, ispkg in pkgutil.walk_packages(path=package.__path__,
-#                                                       prefix=package.__name__+'.',
-#                                                       onerror=lambda x: None):
-#     print(modname)
 
 
-# plate size, mm
-#w = h = 10.
-#
+# this sets up the diffusion grid to correspond to pixels in the 'synvivo_chamber.bmp' image
 w = 172 #this is in pixels
 h = 281
-# scale the pixels to microns (roughly 10 smaller, so / 10 to convert drug speed in um to pixels )
 
 # intervals in x-, y- directions, pixels
 dx = dy = 1
-# Thermal diffusivity of drug, um2.s-1 
-#D_microns = 24 
-#what is the scale microns to pixels 
+
+
+# scale the pixels to microns ( 10 smaller, so divideby 10 to convert drug speed in um to pixels )
 OCchannelwidthPixels = 18 # pixels
-scalefactor = 200/OCchannelwidthPixels
-# Thermal diffusivity of drug, microns2.s-1 / pixel scalar factor (i.e. about 10)
-D = 40 / scalefactor  #40 is for FITC dextran 
+scalefactor = 200/OCchannelwidthPixels # the channel width in the microfludic is 200 um and 18 pixels in the image 
+
+#  diffusivity of drug, microns^2.s-1 / pixel scalar factor (i.e. about 10)
+D = 40 / scalefactor  # 40 microns^2.s-1 is diffusivity for FITC dextran, scalefactor is for direct comparison with the image data
 
 Tcool, Thot = 0, 1
 
@@ -58,11 +47,9 @@ u = np.empty((nx, ny))
 im1 = skio.imread("synvivo_chamber.bmp")
 imgray = rgb2gray(im1)
 maskCh = imgray > 0.86
-u0[maskCh ==True] = Thot # this creates the initial condisiotns for the simluation
+u0[maskCh ==True] = Thot # this creates the initial conditions for the simluation
 #plt.imshow(u0[maskCh ==True])
 plt.imshow(maskCh)
-
-
 
 
 # this gets get the flurescnce in the tissue chamber bit for the real real
@@ -85,7 +72,6 @@ plt.imshow(imgray1)
 #plt.imshow(newimage)
 # 
 #plt.imshow(imgray(circlemask1 == 1))   
-
 
 def do_timestep(u0, u):
     # Propagate with forward-difference in time, central-difference in space
@@ -129,8 +115,7 @@ fig, (ax1, ax2) = plt.subplots(1, 2)
 ax1.imshow(imgray)
 ax2.imshow(all_times[end, :, :])
 
-# put a mask on the simualtion image so it looks better 
-#this bit is to get the T channel dimesion: it didn't work well
+# put a mask on the simulation image to delinate the channels  
 maskTC = imgray >0.4 #this is repeated above
 plt.imshow(maskTC)
 sim_image0 = all_times[end, :, :].copy()
@@ -139,9 +124,6 @@ sim_image0[~maskTC == 1] = 0
 plt.imshow(sim_image0)
 plt.colorbar()
 
-
-
-
 #fig.subplots_adjust(right=0.85)
 #cbar_ax = fig.add_axes([0.7, 0.15, 0.03, 0.5])
 #im = ax.imshow(sim_image0, cmap=plt.get_cmap('hot'), vmin=Tcool,vmax=Thot)
@@ -149,9 +131,7 @@ plt.colorbar()
 #fig.colorbar(im, cax=cbar_ax)
 #plt.show()
 
-
-
-# this gets get the flurescnce in the tissue chamber bit for the simualted image
+# this gets get the flurescnce in the tissue chamber for the simulated image
 sim_image = all_times[end, :, :].copy()
 sim_image[~circlemask1 == 1] = 0
 plt.imshow(sim_image) 
@@ -179,7 +159,7 @@ substracted_im[substracted_im < 0] = 0
 # do structural similarity index on images
 # mssim, S = ssim(imgray2, sim_image, full=True)
 
-#THIS IS THE MONEY FIGURE!!!!
+#THIS IS FIGURE that is in the MRC-CDA grant
 #compare the exp with model with the good mask on it
 #fig.suptitle('Horizontally stacked subplots')  
 imgray_norm  = (imgray - np.min(imgray)) / (np.max(imgray) - np.min(imgray))
