@@ -154,6 +154,7 @@ beamArea * powerNeeded
 clc
 clear 
 close all
+%%
 
 % to read in data from .nc file (11th June 2020)
 file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
@@ -161,6 +162,28 @@ file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
 ncid = netcdf.open(file); 
 data = netcdf.getVar(ncid,0); 
 netcdf.close(ncid);
+
+%check if data cube is giving the same sum absorption
+
+% oneOone = data; 
+ 
+
+test = sum(sum(sum(data)))
+
+%%
+
+reslst = [1,11,51,101,301,501]; 
+absorption = [a,b,c,d,de,e]
+
+figure, 
+plot(reslst, absorption, '-x')
+
+figure, 
+semilogy(reslst, absorption, '-x')
+ylabel('sum absorption of the datacube')
+xlabel('resolution (x^3)')
+title('sum absorption of the datacube vs resolution of the grid - 10^4 photons simulated')
+%%
 
 res = size(data);  % get the resolution (size) of the data cube
 
@@ -272,6 +295,19 @@ kdiff_control_1.takeTimeStep(Nt, dt);
 figure;
 kdiff_control_1.plotTemp;
 colorbar;
+
+%% check if res is giving different outputs
+
+% oneOone = data; 
+sixtyfive = data; 
+% test = oneOone(50, :, 50); 
+
+figure, 
+plot(1:101, oneOone(:, 50, 50), 1:65, sixtyfive(:, 50, 50))
+legend('100x100x100 res', '65x65x65 res')
+
+
+
 
 %% get kdiff for the control 600 SECONDs (10 minutes)
 T0 = 37 .* ones(201, 201); 
