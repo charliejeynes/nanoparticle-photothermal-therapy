@@ -52,7 +52,7 @@ u0[maskCh ==True] = Thot # this creates the initial conditions for the simluatio
 plt.imshow(maskCh)
 
 
-# this gets get the flurescnce in the tissue chamber bit for the real real
+# this gets get the fluorescence in the tissue chamber bit for the real real
 # Initial conditions - ring of inner radius r, width dr centred at (cx,cy) (mm)
 circlemask = np.zeros((nx, ny))
 r, cx, cy = 80, 105, 142
@@ -63,7 +63,7 @@ for i in range(nx):
         if p2 < r2:
             circlemask[i,j] = 1
 imgray1 = imgray.copy()
-circlemask1 = circlemask == 1 # makes it a mask - must be a better way to do it but hey-ho
+circlemask1 = circlemask == 1 # makes it a mask 
 imgray1[~circlemask1 == 1] = 0
 plt.imshow(imgray1)  
 #plt.imshow(imgray)    
@@ -115,7 +115,7 @@ fig, (ax1, ax2) = plt.subplots(1, 2)
 ax1.imshow(imgray)
 ax2.imshow(all_times[end, :, :])
 
-# put a mask on the simulation image to delinate the channels  
+# put a mask on the simulation image to deliniate the channels  
 maskTC = imgray >0.4 #this is repeated above
 plt.imshow(maskTC)
 sim_image0 = all_times[end, :, :].copy()
