@@ -5,9 +5,9 @@ Created on Fri Nov 22 11:08:12 2019
 
 @author: charliejeynes
 
-This script simulates diffusion of 40 kDa Dextran, using known parameters, and compares the simulation 
-to timelapse microscopy data (in particular an image taken at 2 minutes after diffusion of the dextran from 
-vascular channel into the tissue chamber)
+This script simulates diffusion of 40 kDa Dextran, using its exparimentally verified diffusion coefficient, 
+and compares the simulation to timelapse microscopy data (in particular an image taken at 2 minutes 
+after diffusion of the dextran from vascular channel into the tissue chamber in a SynVivo microfludic device)
 
 """
 
@@ -24,7 +24,6 @@ h = 281
 
 # intervals in x-, y- directions, pixels
 dx = dy = 1
-
 
 # scale the pixels to microns ( 10 smaller, so divideby 10 to convert drug speed in um to pixels )
 OCchannelwidthPixels = 18 # pixels
@@ -43,7 +42,8 @@ dt = dx2 * dy2 / (2 * D * (dx2 + dy2))
 u0 = Tcool * np.ones((nx, ny))
 u = np.empty((nx, ny))
 
-#superimpose the image here 
+# This reads the geometry of the microfludic channels and chambers from a digital microscopy image
+# and uses them as the geometry to start the diffusion simulation  
 im1 = skio.imread("synvivo_chamber.bmp")
 imgray = rgb2gray(im1)
 maskCh = imgray > 0.86
@@ -51,8 +51,6 @@ u0[maskCh ==True] = Thot # this creates the initial conditions for the simluatio
 #plt.imshow(u0[maskCh ==True])
 plt.imshow(maskCh)
 
-
-# this gets get the fluorescence in the tissue chamber bit for the real real
 # Initial conditions - ring of inner radius r, width dr centred at (cx,cy) (mm)
 circlemask = np.zeros((nx, ny))
 r, cx, cy = 80, 105, 142
@@ -65,14 +63,9 @@ for i in range(nx):
 imgray1 = imgray.copy()
 circlemask1 = circlemask == 1 # makes it a mask 
 imgray1[~circlemask1 == 1] = 0
-plt.imshow(imgray1)  
-#plt.imshow(imgray)    
-#newimage =  np.empty((nx, ny)) 
-#imgray[circlemask1 == True]
-#plt.imshow(newimage)
-# 
-#plt.imshow(imgray(circlemask1 == 1))   
+plt.imshow(imgray1)   
 
+# This is the diffusion function
 def do_timestep(u0, u):
     # Propagate with forward-difference in time, central-difference in space
     u[1:-1, 1:-1] = u0[1:-1, 1:-1] + D * dt * (
@@ -83,8 +76,9 @@ def do_timestep(u0, u):
     u0[maskCh ==True] = Thot # added this bit so the vascular channel 
     return u0, u
 
-# Number of timesteps # 
-nsteps = 2001
+# This is input for the diffusion function
+# It also plots the results
+nsteps = 2001 # Number of timesteps # 
 end = nsteps - 1
 # Output 4 figures at these timesteps
 mfig = [0, 1, 5, end]
@@ -109,7 +103,7 @@ cbar_ax.set_xlabel('$T$ / K', labelpad=20)
 fig.colorbar(im, cax=cbar_ax)
 plt.show()
 
-#compare the images 
+#compares the simulated diffusion image and the microscope image 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 #fig.suptitle('Horizontally stacked subplots')
 ax1.imshow(imgray)
@@ -124,14 +118,7 @@ sim_image0[~maskTC == 1] = 0
 plt.imshow(sim_image0)
 plt.colorbar()
 
-#fig.subplots_adjust(right=0.85)
-#cbar_ax = fig.add_axes([0.7, 0.15, 0.03, 0.5])
-#im = ax.imshow(sim_image0, cmap=plt.get_cmap('hot'), vmin=Tcool,vmax=Thot)
-#cbar_ax.set_xlabel('$T$ / K', labelpad=20)
-#fig.colorbar(im, cax=cbar_ax)
-#plt.show()
-
-# this gets get the flurescnce in the tissue chamber for the simulated image
+# this gets the flurescence in the tissue chamber for the simulated image
 sim_image = all_times[end, :, :].copy()
 sim_image[~circlemask1 == 1] = 0
 plt.imshow(sim_image) 
@@ -146,12 +133,12 @@ ax2.imshow(sim_image)
 imgray1_bw = (imgray1 > 0.2) *1
 sim_image_bw = (sim_image > 0.1) *1
 
-#overaly the binarised images summing  
+#overlay the binarised images summing  
 overlay_bw_im =  imgray1_bw + sim_image_bw
 plt.imshow(overlay_bw_im)
 plt.colorbar
 
-#simplyt subtract 1 image from the other 
+#simply subtract 1 image from the other 
 imgray2 = imgray1 - 0.1
 substracted_im = imgray2 - sim_image
 substracted_im[substracted_im < 0] = 0
@@ -163,7 +150,6 @@ substracted_im[substracted_im < 0] = 0
 #compare the exp with model with the good mask on it
 #fig.suptitle('Horizontally stacked subplots')  
 imgray_norm  = (imgray - np.min(imgray)) / (np.max(imgray) - np.min(imgray))
-
 fig, (ax1, ax2) = plt.subplots(figsize=(13, 3), ncols=2)
 exp = ax1.imshow(imgray_norm, extent=[0,2.81,0,1.72]) 
 ax1.set_title("a. experimental", fontsize=20)
@@ -181,21 +167,7 @@ ax2.set_title("b. simulation", fontsize=20)
 ax2.set_xlabel("mm")
 ax2.set_ylabel("mm")
 fig.colorbar(sim, ax=ax2)
-
-# diff = ax3.imshow(substracted_im, extent=[0,2.81,0,1.72], cmap='hot', vmin=Tcool, vmax=Thot,
-#                             interpolation='none')
-
-# # SSI = ax3.imshow(S, extent=[0,2.81,0,1.72], cmap='hot', vmin=Tcool, vmax=Thot,
-# #                              interpolation='none')
-# ax3.set_xlabel("mm")
-# ax3.set_ylabel("mm")
-# ax3.set_title("c. difference" ,fontsize=20)
-# fig.colorbar(diff, ax=ax3)
-
 plt.show()
-
-
-
 
 #compute the dice score to compare model with experiment
 #Y = pdist(X, 'dice')
