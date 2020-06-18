@@ -18,7 +18,8 @@ from skimage.color import rgb2gray
 from skimage.transform import rescale, resize, downscale_local_mean
 
 
-# this sets up the diffusion grid to correspond to pixels in the 'synvivo_chamber.bmp' image
+# this sets up the diffusion grid to correspond to pixels in the 'synvivo_chamber.bmp' image, so that a direct comparison
+# can be performed between the diffusion simulation and the microscope data. 
 w = 172 #this is in pixels
 h = 281
 
