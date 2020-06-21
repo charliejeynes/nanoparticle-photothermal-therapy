@@ -11,13 +11,12 @@ close all
 % source = '/Users/charliejeynes/Projects/arc/output/mcrt/mat_map_ptfe.nc'
 % source = '/Users/charliejeynes/Projects/arc/output/mcrt/interfaces.nc'
 % source = '/Users/charliejeynes/Projects/absorption_density.nc'
-source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_density.nc'
+file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
 % source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
-ncid = netcdf.open(source); 
+ncid = netcdf.open(file); 
 data = netcdf.getVar(ncid,0); 
 netcdf.close(ncid); 
 
-%%
 
 xslice = []
 yslice = []
