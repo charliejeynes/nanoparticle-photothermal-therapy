@@ -10,150 +10,6 @@ powerNeeded_1W_cm2 = 1/beamArea  % this is to convert for 1W/cm^2 as is often qu
 
 beamArea * powerNeeded
 
-%% to read in data from .nc file (11th June 2020)
-
-% matrix = rand(201,201);
-% matrix(matrix(:, 115) > 0.5) = 0;
-% 
-% minus_NP = data; 
-% 
-% figure, 
-% imagesc(minus_NP(:, :, 32)); 
-
-%% matlab question ask 
-
-% matrix = rand(201,201);
-% matrix(matrix(:, 115) > 0.5) = 0; 
-
-%% calcualtion for mask multiplication and final NP OD concentration 
-
-% GNR_OD = 1.07
-% tunour_Ua = 2.3 
-% tumour_plusAU = 1.07+2.3 
-% muliplied = tumour_plusAU * 3
-% final_OD_GNRs = 10.1 - 2.3
-
-
-%% to read data from original run in paper
-% Image the absorb cube after loading in manually
-% load('/Users/charliejeynes/Projects/git_NP_PTT/just_tumour.mat'); 
-% minus_NP = absorbCube;
-% figure, 
-% % minus_NP = log10(minus_NP); 
-% imagesc(rot90(minus_NP(:, :, 100))); %check what it looks like
-% %caxis([0,8.5])% create and label the colorbar
-% caxis([1e6,5e7])% create and label the colorbar
-% cmap = jet();
-% colormap(cmap);
-% cb=colorbar
-% cb.Label.String = 'absorbance density (W/m^3) (log10)';
-% 
-% absorbCube = absorbCube; % divide by 2 top take account change in spot size
-% a = absorbCube(97, 139, 32)
-% figure, 
-% imagesc(rot90(absorbCube(:, :, 101))); %check what it looks like
-
-
-%% Hack the absorb cube to give plus and minus
-% % REMEMBER TO LOAD THESE IN SEQUENTIALLY
-% load('just_tumour.mat'); 
-% minus_NP = absorbCube; 
-% clear('absorbCube'); 
-% 
-% %----this can be corrected with the mask------
-% % load('3_tumour_plus_Au.mat'); 
-% % plus_NP = absorbCube ; % THIS IS FOR THE MASK
-% % % plus_NP = absorbCube .* 2.5;   % THIS IS WITHOUT THE MASK it works
-% % % plus_NP_2d = plus_NP(: ,:, 100); % THIS IS FOR THE MASK
-% % clear('absorbCube'); 
-% 
-% load('22.5_14.6_e7.mat'); 
-% plus_NP = absorbCube ; % THIS IS FOR THE MASK
-% % plus_NP = absorbCube .* 2.5;   % THIS IS WITHOUT THE MASK it works
-% % plus_NP_2d = plus_NP(: ,:, 100); % THIS IS FOR THE MASK
-% clear('absorbCube'); 
-
-%% have a look at the numbers 
-% 
-% imtool(plus_NP(: ,: ,100))
-
-%%  make the mask over the tumour to correct for the GNR OD
-
-% yes this works to index the tumour!!
-% plus_NP_2d = plus_NP(: ,:, 100);
-% index = (plus_NP_2d(:, 1:115) > 5e6);
-% plus_NP_2d(index) = plus_NP_2d(index) * 4; % THIS IS WHERE THE OD FOR THE NPS IS TRIPLED SO END IS OD = 8
-% figure, imagesc(index)
-% colorbar
-% plus_NP(: ,:, 100) = plus_NP_2d(:, :, 1); 
-% % plus_NP(plus_NP(:, 1:115) > 1e5) = 0;
-% figure, imagesc(plus_NP(: ,:, 100))
-% colorbar
-
-% this works to  put mask to zero
-% plus_NP_2d = plus_NP(: ,:, 100);
-% plus_NP_2d(plus_NP_2d(:, 1:115) > 5e6) = true;
-% % figure, imagesc(plus_NP_2d)
-% % colorbar
-% plus_NP(: ,:, 100) = plus_NP_2d(:, :, 1); 
-% % plus_NP(plus_NP(:, 1:115) > 1e5) = 0;
-% figure, imagesc(plus_NP(: ,:, 100))
-% colorbar
-
-
-% %% fig 2a no perfusion 
-% 
-% % define medium properties
-% medium.density              = 1079;     % [kg/m^3]
-% medium.thermal_conductivity = 0.52;     % [W/(m.K)]
-% medium.specific_heat        = 3540;     % [J/(kg.K)]
-% 
-% % do minusNP
-% minus_NP_noP  = minus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
-% minus_NP_noP = minus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
-% rot_minus_NP_noP = rot90(minus_NP_noP, 1); 
-% 
-% % do plusNP
-% plus_NP_noP  = plus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
-% plus_NP_noP = plus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
-% rot_plus_NP_noP = rot90(plus_NP_noP, 1); 
-
-%% plot all starting no perfusion in subfigure
-% start = 0; 
-% finish = 3; 
-% figure
-% hold on
-% subplot(1,3,1)
-% imagesc(rot_minus_NP_noP)
-% caxis([start,finish])% create and label the colorbar
-% cb = colorbar;  
-% cb.Label.String = 'Heat change, dT, (^oC)';
-% title('Control'); 
-% 
-% subplot(1,3,2)
-% imagesc(rot_plus_NP_noP)
-% caxis([start,finish])% create and label the colorbar
-% cb = colorbar;  
-% cb.Label.String = 'Heat change, dT, (^oC)';
-% title('With NanoRods (OD=4)'); 
-% 
-% subplot(1,3,3)
-% x = 1:201;
-% plot(x, rot_minus_NP_noP(:, 100), x, rot_plus_NP_noP(:, 100)); 
-% xlabel('mm')
-% ylabel('dT heat change (^oC)')
-%  xticklabels({'0','2','4','6','8','10','12','14', '16', '18', '20'});
-% % % xticklabels({'20','18','16','14','12','10','8','6', '4', '2', '0'});
-% xticks(0:20:200)
-% % set(gca, 'XDir','reverse')
-% % set(gca, 'xlim', 200)
-% xlim([1 200])
-% hold off
-%%
-
-clc
-clear 
-close all
 %%
 
 % to read in data from .nc file (11th June 2020)
@@ -170,7 +26,7 @@ netcdf.close(ncid);
 
 test = sum(sum(sum(data)))
 
-%%
+%% THIS IS A TEST TO CHECK RESOLUTION VS SUM(ABSORBANCE)
 
 reslst = [1,11,51,101,301,501]; 
 absorption = [a,b,c,d,de,e]
@@ -183,7 +39,14 @@ semilogy(reslst, absorption, '-x')
 ylabel('sum absorption of the datacube')
 xlabel('resolution (x^3)')
 title('sum absorption of the datacube vs resolution of the grid - 10^4 photons simulated')
+
 %%
+% to read in data from .nc file (11th June 2020)
+file = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/absorption_dens.nc'
+% source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
+ncid = netcdf.open(file); 
+data = netcdf.getVar(ncid,0); 
+netcdf.close(ncid);
 
 res = size(data);  % get the resolution (size) of the data cube
 
@@ -977,6 +840,149 @@ figure, imagesc(SF_mask_zero)
 
 
 
+
+
+
+%% THIS WAS CUT FROM THE BEGINNING 
+%% to read in data from .nc file (11th June 2020)
+
+% matrix = rand(201,201);
+% matrix(matrix(:, 115) > 0.5) = 0;
+% 
+% minus_NP = data; 
+% 
+% figure, 
+% imagesc(minus_NP(:, :, 32)); 
+
+%% matlab question ask 
+
+% matrix = rand(201,201);
+% matrix(matrix(:, 115) > 0.5) = 0; 
+
+%% calcualtion for mask multiplication and final NP OD concentration 
+
+% GNR_OD = 1.07
+% tunour_Ua = 2.3 
+% tumour_plusAU = 1.07+2.3 
+% muliplied = tumour_plusAU * 3
+% final_OD_GNRs = 10.1 - 2.3
+
+
+%% to read data from original run in paper
+% Image the absorb cube after loading in manually
+% load('/Users/charliejeynes/Projects/git_NP_PTT/just_tumour.mat'); 
+% minus_NP = absorbCube;
+% figure, 
+% % minus_NP = log10(minus_NP); 
+% imagesc(rot90(minus_NP(:, :, 100))); %check what it looks like
+% %caxis([0,8.5])% create and label the colorbar
+% caxis([1e6,5e7])% create and label the colorbar
+% cmap = jet();
+% colormap(cmap);
+% cb=colorbar
+% cb.Label.String = 'absorbance density (W/m^3) (log10)';
+% 
+% absorbCube = absorbCube; % divide by 2 top take account change in spot size
+% a = absorbCube(97, 139, 32)
+% figure, 
+% imagesc(rot90(absorbCube(:, :, 101))); %check what it looks like
+
+
+%% Hack the absorb cube to give plus and minus
+% % REMEMBER TO LOAD THESE IN SEQUENTIALLY
+% load('just_tumour.mat'); 
+% minus_NP = absorbCube; 
+% clear('absorbCube'); 
+% 
+% %----this can be corrected with the mask------
+% % load('3_tumour_plus_Au.mat'); 
+% % plus_NP = absorbCube ; % THIS IS FOR THE MASK
+% % % plus_NP = absorbCube .* 2.5;   % THIS IS WITHOUT THE MASK it works
+% % % plus_NP_2d = plus_NP(: ,:, 100); % THIS IS FOR THE MASK
+% % clear('absorbCube'); 
+% 
+% load('22.5_14.6_e7.mat'); 
+% plus_NP = absorbCube ; % THIS IS FOR THE MASK
+% % plus_NP = absorbCube .* 2.5;   % THIS IS WITHOUT THE MASK it works
+% % plus_NP_2d = plus_NP(: ,:, 100); % THIS IS FOR THE MASK
+% clear('absorbCube'); 
+
+%% have a look at the numbers 
+% 
+% imtool(plus_NP(: ,: ,100))
+
+%%  make the mask over the tumour to correct for the GNR OD
+
+% yes this works to index the tumour!!
+% plus_NP_2d = plus_NP(: ,:, 100);
+% index = (plus_NP_2d(:, 1:115) > 5e6);
+% plus_NP_2d(index) = plus_NP_2d(index) * 4; % THIS IS WHERE THE OD FOR THE NPS IS TRIPLED SO END IS OD = 8
+% figure, imagesc(index)
+% colorbar
+% plus_NP(: ,:, 100) = plus_NP_2d(:, :, 1); 
+% % plus_NP(plus_NP(:, 1:115) > 1e5) = 0;
+% figure, imagesc(plus_NP(: ,:, 100))
+% colorbar
+
+% this works to  put mask to zero
+% plus_NP_2d = plus_NP(: ,:, 100);
+% plus_NP_2d(plus_NP_2d(:, 1:115) > 5e6) = true;
+% % figure, imagesc(plus_NP_2d)
+% % colorbar
+% plus_NP(: ,:, 100) = plus_NP_2d(:, :, 1); 
+% % plus_NP(plus_NP(:, 1:115) > 1e5) = 0;
+% figure, imagesc(plus_NP(: ,:, 100))
+% colorbar
+
+
+% %% fig 2a no perfusion 
+% 
+% % define medium properties
+% medium.density              = 1079;     % [kg/m^3]
+% medium.thermal_conductivity = 0.52;     % [W/(m.K)]
+% medium.specific_heat        = 3540;     % [J/(kg.K)]
+% 
+% % do minusNP
+% minus_NP_noP  = minus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
+% minus_NP_noP = minus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
+% rot_minus_NP_noP = rot90(minus_NP_noP, 1); 
+% 
+% % do plusNP
+% plus_NP_noP  = plus_NP(:, :, 100) ./ (medium.density .* medium.specific_heat);
+% plus_NP_noP = plus_NP_noP ./ (2); % account for our laser which is 2 times more intense,
+% rot_plus_NP_noP = rot90(plus_NP_noP, 1); 
+
+%% plot all starting no perfusion in subfigure
+% start = 0; 
+% finish = 3; 
+% figure
+% hold on
+% subplot(1,3,1)
+% imagesc(rot_minus_NP_noP)
+% caxis([start,finish])% create and label the colorbar
+% cb = colorbar;  
+% cb.Label.String = 'Heat change, dT, (^oC)';
+% title('Control'); 
+% 
+% subplot(1,3,2)
+% imagesc(rot_plus_NP_noP)
+% caxis([start,finish])% create and label the colorbar
+% cb = colorbar;  
+% cb.Label.String = 'Heat change, dT, (^oC)';
+% title('With NanoRods (OD=4)'); 
+% 
+% subplot(1,3,3)
+% x = 1:201;
+% plot(x, rot_minus_NP_noP(:, 100), x, rot_plus_NP_noP(:, 100)); 
+% xlabel('mm')
+% ylabel('dT heat change (^oC)')
+%  xticklabels({'0','2','4','6','8','10','12','14', '16', '18', '20'});
+% % % xticklabels({'20','18','16','14','12','10','8','6', '4', '2', '0'});
+% xticks(0:20:200)
+% % set(gca, 'XDir','reverse')
+% % set(gca, 'xlim', 200)
+% xlim([1 200])
+% hold off
 
 
 
