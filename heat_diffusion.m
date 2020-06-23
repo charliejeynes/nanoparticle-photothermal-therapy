@@ -1,22 +1,27 @@
 clc
 clear 
 close all
+%%
 
-%% test
-figure, 
-plot(heat_simulation.sensor_data(:, 1:10:400)); 
-
+% test = simulations{1,1}.plotTemp
 %%
 
 directory = '/Users/charliejeynes/Projects/dia/sim_data/'; 
 
 file_names = get_file_paths(directory);
 
-for i = 5 %3:size(file_names,1)
+heat_profile = zeros(3,201); % this is a matrix of heat profiles as the tumour is moved back by 2mm x 3 times
+
+cem43 = zeros(201, 201, 3); 
+lesions = zeros(201, 201, 3); 
+simualtions = cell(1,3); 
+
+for i = 1:size(file_names,1)
+    
     file = [directory file_names(i).name];
+    
     datacube = read_nc(file);
-    twoD_slice = get_twoD_slice(datacube); 
-    imagesc(twoD_slice);
+    twoD_slice = get_twoD_slice(datacube);
     [Nx, Ny, dx, dy] = set_grid_heatDiffusion(datacube, 20); % mm_of_world is the dimension of the world in mm set by bounds in ARC
     medium = get_heatDiffusion_constants(Nx, Ny); 
     
@@ -26,20 +31,31 @@ for i = 5 %3:size(file_names,1)
     % create kWaveDiffusion object
     heat_simulation = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:} ); % inputs for kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
     % take time steps (temperature can be accessed as kdiff.T)
-    heat_simulation.takeTimeStep(400, 1); % .takeTimeStep(Nt, dt) Nt=time in seconds, dt = number of timesteps
-    % plot the last temperature field
-    figure;
-    heat_simulation.plotTemp;
-    colorbar;
+    Nt=300; % Nt=time in seconds
+    dt=1;   % dt = number of timesteps
+    heat_simulation.takeTimeStep(Nt, dt); % .takeTimeStep(Nt, dt) Nt=time in seconds, dt = number of timesteps
+    % plot_heatDiffusion() % plot the last temperature field
     
-    figure, 
-    plot(heat_simulation.sensor_data(:, 300)); 
+    simulations{1, i} = heat_simulation; 
     
+    heat_profile(i, :) = heat_simulation.sensor_data(:, Nt); % add heat profiles to a matrix
+    cem43(:, :, i) = heat_simulation.cem43(:, :); 
+    lesions(:, :, i) = heat_simulation.lesion_map(:, :); 
+   
 end    
+
+plot_heat_profiles(heat_profile)
+image_cem43(cem43)
+image_lesions(lesions)
 
 function file_names = get_file_paths(directory)
     
     file_names = dir(directory);
+    
+    mask = ismember({file_names.name}, {'.', '..'});
+    file_names(mask) = [];   %get rid of . and .. directories
+    
+    
 end
 
 
@@ -54,6 +70,10 @@ function twoD_slice = get_twoD_slice(datacube)
     
     middle = round(size(datacube, 2)/2); 
     twoD_slice = datacube(:, :, middle); 
+    
+    figure,
+    imagesc(twoD_slice);
+    colorbar
 
 end
 
@@ -140,8 +160,93 @@ function [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice)
     % set up the sensor 
     sensor.mask = zeros(Nx, Ny);
     sensor.mask(:, 100) = 1;
+    
+end 
+
+function plot_heatDiffusion()
+
+    figure;
+    heat_simulation.plotTemp;
+    colorbar;
+    
+    figure, 
+    plot(heat_simulation.sensor_data(:, 300)); 
+    
+end
+
+function plot_heat_profiles(heat_profile)
+
+    figure, 
+    plot(heat_profile');
+    title('heat diffusion profiles as the tumour moves back from skin surface by 2mm x 3 times')
+    xlabel('resolution (mm*10)')
+    ylabel('Temperature ^oC')
+    set(gca,'FontSize',20)
+    
+end
+
+function image_cem43(cem43)
+    
+    figure, 
+    title('Cumulative minutes at 43^o C')
+    for i=[1,2,3]
+        subplot(1, 3, i)
+        imagesc(cem43(:, :, i))
+        %caxis([0,7])% create and label the colorbar
+        %caxis([0,2500])% create and label the colorbar
+        cmap = jet();
+        colormap(cmap);
+        cb=colorbar; 
+        cb.Label.String = 'cem43';
+        colorbar
+       
+    end
+
+end
+
+
+function image_lesions(lesions)
+    
+    figure, 
+    for i=[1,2,3]
+        subplot(1, 3, i)
+        imagesc(lesions(:, :, i))
+        caxis([0,1])% create and label the colorbar
+        cmap = jet(2);
+        colormap(cmap);
+        cb=colorbar; 
+        cb.Label.String = 'thermally ablated';
+        colorbar
+    end
+
+end
+
+% function image_temperature(lesions)
+%     
+%     figure, 
+%     for i=[1,2,3]
+%         subplot(1, 3, i)
+%         imagesc(lesions(:, :, i))
+%         caxis([0,1])% create and label the colorbar
+%         cmap = jet(2);
+%         colormap(cmap);
+%         cb=colorbar; 
+%         cb.Label.String = 'thermally ablated';
+%         colorbar
+%     end
+% 
+% end
+
+
+function get_from_sim_object()
+    
+    figure, 
+    for i=1:3
+       subplot(1,3,i)
+       simulations{1,i}.plotTemp; 
+       colorbar
+    end
+        
 
 
 end 
-
-
