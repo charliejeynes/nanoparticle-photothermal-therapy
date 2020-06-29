@@ -1,31 +1,49 @@
+
+% Charlie Jeynes - June 2020
+% This script contains a number of functions which analyses output from 
+% 'ARCTORUS' (see github.com/freddywordingham) 
+% and uses this out for input into heat simulations using 'k-wave' (see
+% k-wave.org
+
 clc
 clear 
 close all
 %%
 
 % test = simulations{1,1}.plotTemp
+
+
 %%
 
-directory = '/Users/charliejeynes/Projects/dia/sim_data/'; 
+% specify your directory of .nc simulation files here
+directory = '/Users/charliejeynes/Projects/dia/sim_data/grid_res_test/'; 
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/'; 
+
 
 file_names = get_file_paths(directory);
+number_of_files = length(file_names); 
+%global number_of_files
 
-heat_profile = zeros(3,201); % this is a matrix of heat profiles as the tumour is moved back by 2mm x 3 times
 
-cem43 = zeros(201, 201, 3); 
-lesions = zeros(201, 201, 3); 
-simualtions = cell(1,3); 
+% setup NOTE the grid resolution is set to 201 - change if this is not the
+% case in your simulations. 
+heat_profile = zeros(number_of_files,201); % this is a matrix of line profiles through each of the heat simulation files
+cem43 = zeros(201, 201, number_of_files); 
+lesions = zeros(201, 201, number_of_files); 
+kwave_object_simulations = cell(1,number_of_files); 
 
-for i = 1:size(file_names,1)
+for i = 1:number_of_files
     
     file = [directory file_names(i).name];
     
     datacube = read_nc(file);
     twoD_slice = get_twoD_slice(datacube);
-    [Nx, Ny, dx, dy] = set_grid_heatDiffusion(datacube, 20); % mm_of_world is the dimension of the world in mm set by bounds in ARC
-    medium = get_heatDiffusion_constants(Nx, Ny); 
     
-    %this is the start of the heat diffusion simulation
+    
+    % this is the start of the heat diffusion simulation
+    mm_of_world = 20; % mm_of_world is the dimension of the world in mm set by bounds in ARC
+    [Nx, Ny, dx, dy] = set_grid_heatDiffusion(datacube, mm_of_world); 
+    medium = get_heatDiffusion_constants(Nx, Ny); 
     kgrid = kWaveGrid(Nx, dx, Ny, dy);
     [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice);
     % create kWaveDiffusion object
@@ -34,19 +52,24 @@ for i = 1:size(file_names,1)
     Nt=300; % Nt=time in seconds
     dt=1;   % dt = number of timesteps
     heat_simulation.takeTimeStep(Nt, dt); % .takeTimeStep(Nt, dt) Nt=time in seconds, dt = number of timesteps
-    % plot_heatDiffusion() % plot the last temperature field
     
-    simulations{1, i} = heat_simulation; 
+    plot_heatDiffusion(heat_simulation) % plot the last temperature field
     
-    heat_profile(i, :) = heat_simulation.sensor_data(:, Nt); % add heat profiles to a matrix
-    cem43(:, :, i) = heat_simulation.cem43(:, :); 
-    lesions(:, :, i) = heat_simulation.lesion_map(:, :); 
+    %create kwave simulation object for each file
+    kwave_object_simulations{1, i} = heat_simulation; 
+    
+    % collect up the outputs for each file to compare results later 
+%     heat_profile(i, :) = heat_simulation.sensor_data(:, Nt); % add heat profiles to a matrix
+%     cem43(:, :, i) = heat_simulation.cem43(:, :); 
+%     lesions(:, :, i) = heat_simulation.lesion_map(:, :); 
    
 end    
 
-plot_heat_profiles(heat_profile)
-image_cem43(cem43)
-image_lesions(lesions)
+% compare results of all the .nc files in the folder
+
+% plot_heat_profiles(heat_profile)
+% image_cem43(cem43, number_of_files)
+% image_lesions(lesions, number_of_files)
 
 function file_names = get_file_paths(directory)
     
@@ -159,18 +182,16 @@ function [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice)
 
     % set up the sensor 
     sensor.mask = zeros(Nx, Ny);
-    sensor.mask(:, 100) = 1;
+    sensor.mask(:, :) = 1;
     
 end 
 
-function plot_heatDiffusion()
+function plot_heatDiffusion(heat_simulation)
 
     figure;
     heat_simulation.plotTemp;
     colorbar;
-    
-    figure, 
-    plot(heat_simulation.sensor_data(:, 300)); 
+
     
 end
 
@@ -185,11 +206,12 @@ function plot_heat_profiles(heat_profile)
     
 end
 
-function image_cem43(cem43)
+function image_cem43(cem43, number_of_files)
     
+%     global number_of_files
     figure, 
     title('Cumulative minutes at 43^o C')
-    for i=[1,2,3]
+    for i=1:number_of_files
         subplot(1, 3, i)
         imagesc(cem43(:, :, i))
         %caxis([0,7])% create and label the colorbar
@@ -205,10 +227,11 @@ function image_cem43(cem43)
 end
 
 
-function image_lesions(lesions)
+function image_lesions(lesions, number_of_files)
     
+%    global number_of_files
     figure, 
-    for i=[1,2,3]
+    for i=1:number_of_files
         subplot(1, 3, i)
         imagesc(lesions(:, :, i))
         caxis([0,1])% create and label the colorbar
@@ -221,25 +244,10 @@ function image_lesions(lesions)
 
 end
 
-% function image_temperature(lesions)
-%     
-%     figure, 
-%     for i=[1,2,3]
-%         subplot(1, 3, i)
-%         imagesc(lesions(:, :, i))
-%         caxis([0,1])% create and label the colorbar
-%         cmap = jet(2);
-%         colormap(cmap);
-%         cb=colorbar; 
-%         cb.Label.String = 'thermally ablated';
-%         colorbar
-%     end
-% 
-% end
-
 
 function get_from_sim_object()
     
+%    global number_of_files
     figure, 
     for i=1:3
        subplot(1,3,i)
@@ -247,6 +255,7 @@ function get_from_sim_object()
        colorbar
     end
         
-
-
 end 
+
+
+
