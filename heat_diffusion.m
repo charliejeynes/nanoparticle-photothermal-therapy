@@ -17,7 +17,9 @@ close all
 
 % specify your directory of .nc simulation files here
 directory = '/Users/charliejeynes/Projects/dia/sim_data/grid_res_test/'; 
-% directory = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/'; 
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/'; 
+
+
 
 
 file_names = get_file_paths(directory);
@@ -38,18 +40,23 @@ for i = 1:number_of_files
     
     datacube = read_nc(file);
     twoD_slice = get_twoD_slice(datacube);
+    grid_resolution = get_grid_resolution(twoD_slice); 
+    grid_resolution_lst(i) = get_grid_resolution(twoD_slice);
     
     
     % this is the start of the heat diffusion simulation
     mm_of_world = 20; % mm_of_world is the dimension of the world in mm set by bounds in ARC
     [Nx, Ny, dx, dy] = set_grid_heatDiffusion(datacube, mm_of_world); 
     medium = get_heatDiffusion_constants(Nx, Ny); 
+    %unhash the next two lines if you want an heterogenous medium (air/tissue)
+    %airStart = 140; 
+    %medium = get_heatDiffusion_constants_hetero(Nx, Ny, airStart);  % Use this one if you want a heterogenous medium e.g. tissue/air
     kgrid = kWaveGrid(Nx, dx, Ny, dy);
     [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice);
     % create kWaveDiffusion object
     heat_simulation = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:} ); % inputs for kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
     % take time steps (temperature can be accessed as kdiff.T)
-    Nt=300; % Nt=time in seconds
+    Nt=120; % Nt=time in seconds
     dt=1;   % dt = number of timesteps
     heat_simulation.takeTimeStep(Nt, dt); % .takeTimeStep(Nt, dt) Nt=time in seconds, dt = number of timesteps
     
@@ -58,12 +65,18 @@ for i = 1:number_of_files
     %create kwave simulation object for each file
     kwave_object_simulations{1, i} = heat_simulation; 
     
+    
+    
     % collect up the outputs for each file to compare results later 
 %     heat_profile(i, :) = heat_simulation.sensor_data(:, Nt); % add heat profiles to a matrix
 %     cem43(:, :, i) = heat_simulation.cem43(:, :); 
 %     lesions(:, :, i) = heat_simulation.lesion_map(:, :); 
    
 end    
+
+
+get_from_sim_object(kwave_object_simulations, number_of_files, Nt, grid_resolution_lst)
+
 
 % compare results of all the .nc files in the folder
 
@@ -75,7 +88,7 @@ function file_names = get_file_paths(directory)
     
     file_names = dir(directory);
     
-    mask = ismember({file_names.name}, {'.', '..'});
+    mask = ismember({file_names.name}, {'.', '..', '.DS_Store'});
     file_names(mask) = [];   %get rid of . and .. directories
     
     
@@ -122,9 +135,7 @@ end
 
 function medium = get_heatDiffusion_constants(Nx, Ny)
 
-    % define medium properties for the heat diffusion equation
-
-    airStart = 40; 
+    % define medium properties for the heat diffusion equation 
 
     medium.density = ones(Nx, Ny); 
     medium.density(:, :)  = 1079;     % of tissue [kg/m^3]
@@ -146,7 +157,7 @@ function medium = get_heatDiffusion_constants(Nx, Ny)
     medium.blood_density                = ones(Nx, Ny);     % [kg/m^3]
     medium.blood_density(:, :)          = 1060;     % [kg/m^3]
     % medium.blood_density(:, airStart:end)    = 0;     % [kg/m^3]
-    medium.blood_density(airStart:end, :)    = 0;     % of air [kg/m^3]
+%    medium.blood_density(airStart:end, :)    = 0;     % of air [kg/m^3]
 
     medium.blood_specific_heat          = ones(Nx, Ny);     % [J/(kg.K)]
     medium.blood_specific_heat(:, :)    = 3617;     % [J/(kg.K)]
@@ -165,11 +176,59 @@ function medium = get_heatDiffusion_constants(Nx, Ny)
 
 end 
 
+function medium = get_heatDiffusion_constants_hetero(Nx, Ny, airStart)
+
+    % define medium properties for the heat diffusion equation
+    air_density = 125.5;            % 1.255; % of air [kg/m^3]
+    air_specific_heat = 718;        % 718 of air [J/(kg.K)]
+    
+    medium.density = ones(Nx, Ny); 
+    medium.density(:, :)  = 1079;     % of tissue [kg/m^3]
+%     medium.density(:, airStart:end)  = 1.255; % of air [kg/m^3]
+    medium.density(airStart:end, :)  = air_density ;  %1.255; % of air [kg/m^3]
+    figure, imagesc(medium.density)
+    title('medium')
+
+    medium.thermal_conductivity = ones(Nx, Ny); 
+    medium.thermal_conductivity(:, :)  = 0.52;     % tissue [W/(m.K)]
+%     medium.thermal_conductivity(:, airStart:end)  = 26.02;  % of air [W/(m.K)]
+    medium.thermal_conductivity(airStart:end,:) = 0.99;  %26.02;  % of air [W/(m.K)]
+
+    medium.specific_heat = ones(Nx, Ny);
+    medium.specific_heat(:, :)   = 3540;     % of tissue [J/(kg.K)]
+%     medium.specific_heat(:, airStart:end)  = 0718;        % of air [J/(kg.K)]
+    medium.specific_heat(airStart:end, :)  = air_specific_heat;        % of air [J/(kg.K)]
+
+    % define medium properties related to perfusion
+    medium.blood_density                = ones(Nx, Ny);     % [kg/m^3]
+    medium.blood_density(:, :)          = 1060;     % [kg/m^3]
+%     medium.blood_density(:, airStart:end)    = 0;     % [kg/m^3]
+    medium.blood_density(airStart:end, :)    = air_density;     % of air [kg/m^3]
+
+    medium.blood_specific_heat          = ones(Nx, Ny);     % [J/(kg.K)]
+    medium.blood_specific_heat(:, :)    = 3617;     % [J/(kg.K)]
+%     medium.blood_specific_heat(:, airStart:end)    = 0;  % [J/(kg.K)]
+    medium.blood_specific_heat(airStart:end, :) = air_specific_heat;  % of air [J/(kg.K)]
+
+    medium.blood_perfusion_rate         = ones(Nx, Ny);    % [1/s]
+    medium.blood_perfusion_rate(:, :)   = 0.01;     % [1/s]
+%     medium.blood_perfusion_rate(:, airStart:end) = 0;     % [1/s]
+    medium.blood_perfusion_rate(airStart:end, :) = 0.01;     % of air [1/s]
+
+    medium.blood_ambient_temperature    = ones(Nx, Ny);       % [degC]
+    medium.blood_ambient_temperature(:, :)    = 37;       % [degC]
+%     medium.blood_ambient_temperature(:, airStart:end)   = 22;       % [degC]
+    medium.blood_ambient_temperature(airStart:end, :)   = 22;      % of air [degC]
+
+end 
+
 function [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice)
 
     T0 = 37 .* ones(Nx, Ny); 
-    % T0(:, 120:201) = 37 ; 
-    %figure, imagesc(T0)
+%     T0(140:201, :) = 22; 
+    figure, imagesc(T0)
+    title('source heat');
+    colorbar;
     source.T0 = T0; 
 
     % testSource = zeros(65,65); 
@@ -220,7 +279,6 @@ function image_cem43(cem43, number_of_files)
         colormap(cmap);
         cb=colorbar; 
         cb.Label.String = 'cem43';
-        colorbar
        
     end
 
@@ -239,23 +297,34 @@ function image_lesions(lesions, number_of_files)
         colormap(cmap);
         cb=colorbar; 
         cb.Label.String = 'thermally ablated';
-        colorbar
+        
     end
 
 end
 
 
-function get_from_sim_object()
+function get_from_sim_object(kwave_object_simulations, number_of_files, Nt, grid_resolution_lst)
     
 %    global number_of_files
     figure, 
-    for i=1:3
-       subplot(1,3,i)
-       simulations{1,i}.plotTemp; 
-       colorbar
+    for i=1:number_of_files
+       subplot(2,3,i)
+       kwave_object_simulations{1,i}.plotTemp; 
+       %caxis([0,7])% create and label the colorbar
+       %caxis([0,2500])% create and label the colorbar
+       cmap = jet();
+       colormap(cmap);
+       cb=colorbar; 
+%        cb.Label.String = 'Temperature ^oC';
+       title(['resolution =', num2str(grid_resolution_lst(i))]); 
     end
-        
+%     currentFigure = gcf;
+%     title(currentFigure.Children(end), 'Irradiation for', num2str(Nt) , 'seconds');    
 end 
 
 
+function grid_resolution = get_grid_resolution(twoD_slice)
 
+    grid_resolution = size(twoD_slice, 1); 
+
+end
