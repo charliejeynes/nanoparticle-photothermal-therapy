@@ -19,7 +19,7 @@ import sys
 import os
  
 
-filepath = '/Users/charliejeynes/Projects/dia/sim_data/'
+filepath = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/'
 
 def list_nc_files(filepath):
     '''
