@@ -21,9 +21,13 @@ import scipy.io as spio
 
 
 
-filepath = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/power1W/'
+#filepath = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/power1W/'
 
 #filepath = '/Users/charliejeynes/Projects/git_NP_PTT/'
+
+#filepath = '/Users/charliejeynes/Projects/git_NP_PTT/six_minutes.mat'
+
+filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
  
 
 
@@ -71,9 +75,9 @@ def read_nc(file):
     return  datacube
 
 
-def read_in_heat_simulation(data):
+def read_in_heat_simulation(filepath):
     
-    return spio.loadmat(data, squeeze_me=True)
+    return spio.loadmat(filepath, squeeze_me=True)
 
 
 
@@ -83,7 +87,6 @@ def get_data_from_spio_dic(data, name_of_data):
     of the data as a string , so that it can look it up in the dict
     
     '''
-
     return data[name_of_data]
 
 
@@ -192,19 +195,16 @@ def get_line_profile(cross_sections):
     #         #profile = np.mean(cem43[:, 90:110, i], axis=0)
     #         profile = section[130, :]
     #         plt.plot(profile)
-    #         line_profiles.append(profile)
-            
+    #         line_profiles.append(profile)     
     for section in cross_sections:
         profile = section[130, :]
         line_profiles.append(profile)
         plt.plot(profile)
-            
-    return line_profiles   
+    
+    return line_profiles
+        
  
  
-
-
-
 def plot_image_profile(images, profiles):
     
     '''
@@ -235,12 +235,45 @@ def plot_image_profile(images, profiles):
                 
 def plot_hirsch_data():
     
-    depth_from_skin = [0,  1,    2,  3,   4,   5,   6] # in mm 
-    control_1min =    [5,  5,    4,  3,  2.5,  2,   1] # heat rise in C
-    control_6min =    [12, 11.5, 9,  9,  8.0,  7.5, 6] # heat rise in C
+    depth_from_skin = [0,  0.5, 1,    2,  3,   4,   5,   6] # in mm 
+    control_1min =    [5,  6, 5,    4,  3,  2.5,  2,   1] # heat rise in C
+    control_6min =    [12, 13.5, 11.5, 9,  9,  8.0,  7.5, 6] # heat rise in C
+
+    # biomolecules_data = [8.2, 6.4, 4.9, 3.7, 2.7, 1.8, 1.4]
+
+    plt.figure(1)
+    plt.plot(depth_from_skin, control_6min, '-b', label= 'Hirscht et al') 
+    # plt.plot(depth_from_skin, biomolecules_data, '-r', label= 'biomolecules paper')
+    plt.ylim(0, 15)
+    plt.ylabel('Temperature rise (C)')
+    plt.xlabel('Depth from skin surface (mm)')
+    plt.legend(loc="upper right")
+    
+plot_hirsch_data()
+
+def covert_spotsize_to_power(spot_radius = 0.25, power_quoted = 4):
+    
+    ''' this takes the spot diameter (usually ~5mm) in mm  and power quoted 
+    in a paper (W/cm^2) and converts it to the 
+    the power in the spot
+    '''
+
+    #spot_radius = 0.25 # cm
+    spot_area = 3.14 / 4 * spot_radius**2
+    #power_quoted = 4 # W/cm^2
+    
+    power_in_spot = power_quoted / spot_area
+    return power_in_spot
+power_in_spot = covert_spotsize_to_power(spot_radius = 0.15, power_quoted = 1)
+    
 
 
-    plt.plot(depth_from_skin, control_6min, scaley=False)
+def scale_beam_spot_in_arc():
+    
+    spot = 10 # in m
+    scaleby = 0.5e-3 # to scale to mm
+    scaled_spot = spot * scaleby 
+   
 
 def plot_arc_nc_files():
     files_list = list_nc_files(filepath)
@@ -249,22 +282,35 @@ def plot_arc_nc_files():
     image_2D_sections(cross_sections, log_cross_sections)
     line_profiles = get_line_profile(cross_sections) 
     plot_image_profile(log_cross_sections, line_profiles)
+plot_arc_nc_files()
+
+def plot_cem43_files(filepath):
+    filepath = get_full_file_path(filepath, 'cem43.mat')
+    cem43 = read_in_heat_simulation(filepath)
+    mat_cem43 = get_data_from_spio_dic(cem43, 'cem43')
+    lst_cem43 = convert_3Dmatrix_to_lst(mat_cem43)
+    log_cem43 = log_data(lst_cem43)
+    #image_2D_sections(lst_cem43, log_cem43)
+    line_profiles = get_line_profile(lst_cem43) 
+    plot_image_profile(log_cem43, line_profiles)
 
 
-#plot_arc_nc_files()
+def plot_biomolecules_data():
+    six_minutes = read_in_heat_simulation(filepath)
+    six_minutes = get_data_from_spio_dic(six_minutes, 'six_minutes')
+    line_profile = six_minutes[100, :]
+    line_profile_norm = line_profile - 37
+    line_profile_rev = line_profile_norm[::-1]
+    # # plt.figure(3)
+    # plt.plot(np.arange(1, 202, 1), line_profile_rev)
+    # # plt.figure(4)
+    # plt.plot(np.arange(0, 20, 0.1), line_profile_rev[0:200])
+    plt.figure(1)
+    plt.plot(np.arange(0, 6, 0.1), line_profile_rev[80:140], '-r', label='biomolecules paper')
+    plt.legend()
+    # plt.plot((np.arange(0, 5.5, 0.05), line_profile_norm[:110])
 
 
-filepath = get_full_file_path(filepath, 'cem43.mat')
-cem43 = read_in_heat_simulation(filepath)
-mat_cem43 = get_data_from_spio_dic(cem43, 'cem43')
-lst_cem43 = convert_3Dmatrix_to_lst(mat_cem43)
-log_cem43 = log_data(lst_cem43)
-#image_2D_sections(lst_cem43, log_cem43)
-line_profiles = get_line_profile(lst_cem43) 
-plot_image_profile(log_cem43, line_profiles)
-
-
-plot_hirsch_data()
 
 
 
