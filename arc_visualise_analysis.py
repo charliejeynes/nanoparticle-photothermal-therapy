@@ -19,7 +19,7 @@ import sys
 import os
 import scipy.io as spio
 
-
+plt.close('all')
 
 #filepath = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/power1W/'
 
@@ -27,16 +27,29 @@ import scipy.io as spio
 
 #filepath = '/Users/charliejeynes/Projects/git_NP_PTT/six_minutes.mat'
 
-filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
- 
+#filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
+
+arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
+
+matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/'
+a = os.listdir(arc_nc_filepath) 
 
 
 def list_nc_files(filepath):
     '''
     lists the file path for all .nc simulation files in the subdirectory
+    
     '''
-    files_list = [os.path.join(filepath, file) for file in os.listdir(filepath)]
-    return files_list
+
+    files_list = []
+    for file in os.listdir(filepath):
+        if file.startswith('.'):
+            file = []
+        else:
+            fullpath = os.path.join(filepath, file)
+            files_list.append(fullpath)
+            
+    return sorted(files_list)
 
 
 
@@ -93,8 +106,9 @@ def get_data_from_spio_dic(data, name_of_data):
 
 def convert_3Dmatrix_to_lst(heat_sims_matrix):
     '''
-    
-    takes a 3D matlab array and makes the 3rd dimension a list in an n*m array. 
+    The 3Ddimension in the matrix is data from different simulations. It was easier to store 
+    and save in this for at in matlab. BUt now the 3D dimension is converted to a list. 
+    Takes a 3D matlab array and makes the 3rd dimension a list in an n*m array. 
     This is then in the right format for the rest of the functions in this
     scripts
 
@@ -197,15 +211,15 @@ def get_line_profile(cross_sections):
     #         plt.plot(profile)
     #         line_profiles.append(profile)     
     for section in cross_sections:
-        profile = section[130, :]
+        profile = np.mean(section[90:110, : ], axis=0)
         line_profiles.append(profile)
-        plt.plot(profile)
+        #plt.plot(profile)
     
     return line_profiles
         
  
  
-def plot_image_profile(images, profiles):
+def plot_image_profile(images, profiles, logScale = True):
     
     '''
     Parameters
@@ -228,9 +242,14 @@ def plot_image_profile(images, profiles):
             if c%2 == 0:
                 img = ax[r, c].imshow(images[r], cmap='jet')#, vmin=1, vmax=7)
                 fig.colorbar(img, ax=ax[r,c])
-            else:
+            elif logScale == True:
                 ax[r, c].semilogy(profiles[r])
-                ax[r, c].axis(ymin=1,ymax=3e5)
+                ax[r, c].axis(ymin=10,ymax=1e7)
+            else:
+                ax[r, c].plot(profiles[r])
+                ax[r, c].axis(ymin=37,ymax=70)
+                
+    
                 
                 
 def plot_hirsch_data():
@@ -266,36 +285,46 @@ def covert_spotsize_to_power(spot_radius = 0.25, power_quoted = 4):
     return power_in_spot
 power_in_spot = covert_spotsize_to_power(spot_radius = 0.15, power_quoted = 1)
     
-
+def rotate_2D_section(lst_of_heat_sims):
+    
+    rotated_heat_sims = []
+    for each_simulation in lst_of_heat_sims:
+        rotated_heat_sims.append(np.rot90(each_simulation))
+    return rotated_heat_sims
+    
 
 def scale_beam_spot_in_arc():
     
     spot = 10 # in m
     scaleby = 0.5e-3 # to scale to mm
     scaled_spot = spot * scaleby 
-   
 
-def plot_arc_nc_files():
+
+def plot_arc_nc_files(filepath):
     files_list = list_nc_files(filepath)
     cross_sections = get_sections_as_lst(files_list)
     log_cross_sections = log_data(cross_sections)   
     image_2D_sections(cross_sections, log_cross_sections)
     line_profiles = get_line_profile(cross_sections) 
     plot_image_profile(log_cross_sections, line_profiles)
-plot_arc_nc_files()
+plot_arc_nc_files(arc_nc_filepath)
 
-def plot_cem43_files(filepath):
-    filepath = get_full_file_path(filepath, 'cem43.mat')
-    cem43 = read_in_heat_simulation(filepath)
-    mat_cem43 = get_data_from_spio_dic(cem43, 'cem43')
+def plot_kwave_sim_files(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_temp_rise, logScale = False):
+    matlab_files_path = get_full_file_path(matlab_files_path, cem_or_temp_rise_dot_mat)
+    cem43 = read_in_heat_simulation(matlab_files_path)
+    mat_cem43 = get_data_from_spio_dic(cem43, cem_or_temp_rise)
     lst_cem43 = convert_3Dmatrix_to_lst(mat_cem43)
-    log_cem43 = log_data(lst_cem43)
+    rot_lst_cem43 = rotate_2D_section(lst_cem43)
+    #log_cem43 = log_data(rot_lst_cem43)
     #image_2D_sections(lst_cem43, log_cem43)
-    line_profiles = get_line_profile(lst_cem43) 
-    plot_image_profile(log_cem43, line_profiles)
+    cem_line_profiles = get_line_profile(rot_lst_cem43) 
+    plot_image_profile(rot_lst_cem43, cem_line_profiles, logScale)
+    
 
-
-def plot_biomolecules_data():
+plot_kwave_sim_files(matlab_files_path, 'temperature_image_list.mat', 'temperature_image_list', logScale = False)
+plot_kwave_sim_files(matlab_files_path, 'cem43.mat', 'cem43', logScale = True)
+    
+def plot_biomoleculesPaper_data(filepath):
     six_minutes = read_in_heat_simulation(filepath)
     six_minutes = get_data_from_spio_dic(six_minutes, 'six_minutes')
     line_profile = six_minutes[100, :]
@@ -311,7 +340,17 @@ def plot_biomolecules_data():
     # plt.plot((np.arange(0, 5.5, 0.05), line_profile_norm[:110])
 
 
+def get_survival_fitting_function():
+    '''
+    plot out estimated survival fraction after ten minutes 
 
+    survival fraction at 43 with time on cancer cells in vitro
+    
+    '''
+    survival_fraction = [100, 65, 50, 25, 15, 7, 4, 3] # % this is the cancer data at 43 degrees vs time
+    time_min = [0, 60, 90, 120, 150, 210, 240, 300] 
+    # f = fit(time_min,survival_fraction,'exp1');  # this is the exponetial function , 'StartPoint',[100,3]
+    # f(300)
 
 
 
