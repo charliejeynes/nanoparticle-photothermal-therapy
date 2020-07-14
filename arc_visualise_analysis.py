@@ -105,6 +105,7 @@ def get_data_from_spio_dic(data, name_of_data):
 
 
 def convert_3Dmatrix_to_lst(heat_sims_matrix):
+    
     '''
     The 3Ddimension in the matrix is data from different simulations. It was easier to store 
     and save in this for at in matlab. BUt now the 3D dimension is converted to a list. 
@@ -219,7 +220,7 @@ def get_line_profile(cross_sections):
         
  
  
-def plot_image_profile(images, profiles, logScale = True):
+def plot_image_profile(images, profiles, logScale = True, cem_data_line_profiles = []):
     
     '''
     Parameters
@@ -244,6 +245,9 @@ def plot_image_profile(images, profiles, logScale = True):
                 fig.colorbar(img, ax=ax[r,c])
             elif logScale == True:
                 ax[r, c].semilogy(profiles[r])
+                ax[r, c].axis(ymin=10,ymax=1e7)
+            elif cem_data_line_profiles:
+                ax[r, c].semilogy(cem_data_line_profiles[r])
                 ax[r, c].axis(ymin=10,ymax=1e7)
             else:
                 ax[r, c].plot(profiles[r])
@@ -291,7 +295,7 @@ def rotate_2D_section(lst_of_heat_sims):
     for each_simulation in lst_of_heat_sims:
         rotated_heat_sims.append(np.rot90(each_simulation))
     return rotated_heat_sims
-    
+
 
 def scale_beam_spot_in_arc():
     
@@ -300,30 +304,69 @@ def scale_beam_spot_in_arc():
     scaled_spot = spot * scaleby 
 
 
-def plot_arc_nc_files(filepath):
+def plot_arc_nc_files(filepath, cem_data_line_profiles):
     files_list = list_nc_files(filepath)
     cross_sections = get_sections_as_lst(files_list)
     log_cross_sections = log_data(cross_sections)   
     image_2D_sections(cross_sections, log_cross_sections)
     line_profiles = get_line_profile(cross_sections) 
-    plot_image_profile(log_cross_sections, line_profiles)
-plot_arc_nc_files(arc_nc_filepath)
+    plot_image_profile(log_cross_sections, line_profiles, cem_data_line_profiles)
+plot_arc_nc_files(arc_nc_filepath, cem_data_line_profiles=[])
+
 
 def plot_kwave_sim_files(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_temp_rise, logScale = False):
     matlab_files_path = get_full_file_path(matlab_files_path, cem_or_temp_rise_dot_mat)
-    cem43 = read_in_heat_simulation(matlab_files_path)
-    mat_cem43 = get_data_from_spio_dic(cem43, cem_or_temp_rise)
-    lst_cem43 = convert_3Dmatrix_to_lst(mat_cem43)
-    rot_lst_cem43 = rotate_2D_section(lst_cem43)
+    spio_dict = read_in_heat_simulation(matlab_files_path)
+    matlab_file = get_data_from_spio_dic(spio_dict, cem_or_temp_rise)
+    matlab_data_lst = convert_3Dmatrix_to_lst(matlab_file)
+    rot_data = rotate_2D_section(matlab_data_lst)
     #log_cem43 = log_data(rot_lst_cem43)
     #image_2D_sections(lst_cem43, log_cem43)
-    cem_line_profiles = get_line_profile(rot_lst_cem43) 
-    plot_image_profile(rot_lst_cem43, cem_line_profiles, logScale)
+    data_line_profiles = get_line_profile(rot_data) 
+    plot_image_profile(rot_data, data_line_profiles, logScale)
     
+cem_or_temp_rise_dot_mat = 'temperature_image_list.mat'
+cem_or_temp_rise = 'temperature_image_list'
 
 plot_kwave_sim_files(matlab_files_path, 'temperature_image_list.mat', 'temperature_image_list', logScale = False)
 plot_kwave_sim_files(matlab_files_path, 'cem43.mat', 'cem43', logScale = True)
+
+def get_kwave_sim_data(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_temp_rise):
+    matlab_files_path = get_full_file_path(matlab_files_path, cem_or_temp_rise_dot_mat)
+    spio_dict = read_in_heat_simulation(matlab_files_path)
+    matlab_file = get_data_from_spio_dic(spio_dict, cem_or_temp_rise)
+    matlab_data_lst = convert_3Dmatrix_to_lst(matlab_file)
+    rot_data = rotate_2D_section(matlab_data_lst)
+    #log_cem43 = log_data(rot_lst_cem43)
+    #image_2D_sections(lst_cem43, log_cem43)
+    data_line_profiles = get_line_profile(rot_data) 
+    return matlab_data_lst, rot_data, data_line_profiles
+
+cem_data_lst, cem_rot_data, cem_data_line_profiles = get_kwave_sim_data(
+                                                           matlab_files_path, 'cem43.mat', 'cem43')
+
+def plot_energy_density_with_cem(filepath, matlab_files_path):
     
+    cem_data_lst, cem_rot_data, cem_data_line_profiles = get_kwave_sim_data(
+                                                           matlab_files_path, 'cem43.mat', 'cem43')
+    plot_arc_nc_files(filepath, cem_data_line_profiles)
+
+plot_energy_density_with_cem(arc_nc_filepath, matlab_files_path)
+    
+# def plot_arc_and_cem43(filepath):
+#     files_list = list_nc_files(filepath)
+#     cross_sections = get_sections_as_lst(files_list)
+#     log_cross_sections = log_data(cross_sections)   
+#     image_2D_sections(cross_sections, log_cross_sections)
+#     line_profiles = get_line_profile(cross_sections) 
+#     plot_image_profile(log_cross_sections, line_profiles)
+    
+#     cem43_data = get_cem43_data(matlab_files_path, 'cem43.mat', 'cem43')
+# plot_arc_nc_files(arc_nc_filepath)
+
+
+
+
 def plot_biomoleculesPaper_data(filepath):
     six_minutes = read_in_heat_simulation(filepath)
     six_minutes = get_data_from_spio_dic(six_minutes, 'six_minutes')
