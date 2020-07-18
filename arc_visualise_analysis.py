@@ -13,11 +13,14 @@ results
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import netCDF4
 import sys
 import os
 import scipy.io as spio
+import cv2 as cv2
+from skimage.measure import label, regionprops
+
 
 plt.close('all')
 
@@ -29,7 +32,9 @@ plt.close('all')
 
 #filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
 
-arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
+
+arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing/'
 
 matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/'
 a = os.listdir(arc_nc_filepath) 
@@ -93,7 +98,6 @@ def read_in_heat_simulation(filepath):
     return spio.loadmat(filepath, squeeze_me=True)
 
 
-
 def get_data_from_spio_dic(data, name_of_data):
     
     ''' this passes in the 'data' which is a 3d matrix from matlab, and the name 
@@ -102,8 +106,7 @@ def get_data_from_spio_dic(data, name_of_data):
     '''
     return data[name_of_data]
 
-
-
+       
 def convert_3Dmatrix_to_lst(heat_sims_matrix):
     
     '''
@@ -125,6 +128,17 @@ def convert_3Dmatrix_to_lst(heat_sims_matrix):
     return lst_of_heat_sims   
     
 
+def get_grid_resolution():
+    print('to do')
+
+def convert_resolution_to_mm():
+    print('to do')
+    
+def resolution_in_mm_vector(): 
+    resolution_in_mm = np.arange(0,201, 1) / 10
+    # print(resolution_in_mm, resolution_in_mm.size) 
+    return resolution_in_mm
+resolution_in_mm_vector()
 
 def get_2D_section(datacube, slice_pos_in_y):
     
@@ -220,7 +234,7 @@ def get_line_profile(cross_sections):
         
  
  
-def plot_image_profile(images, profiles, logScale = True, cem_data_line_profiles = []):
+def plot_image_profile(images, profiles, logScale = True):
     
     '''
     Parameters
@@ -246,9 +260,9 @@ def plot_image_profile(images, profiles, logScale = True, cem_data_line_profiles
             elif logScale == True:
                 ax[r, c].semilogy(profiles[r])
                 ax[r, c].axis(ymin=10,ymax=1e7)
-            elif cem_data_line_profiles:
-                ax[r, c].semilogy(cem_data_line_profiles[r])
-                ax[r, c].axis(ymin=10,ymax=1e7)
+            # elif plot_cem_data == True:
+            #     ax[r, c].semilogy(cem_data_line_profiles[r])
+            #     ax[r, c].axis(ymin=10,ymax=1e7)
             else:
                 ax[r, c].plot(profiles[r])
                 ax[r, c].axis(ymin=37,ymax=70)
@@ -304,14 +318,22 @@ def scale_beam_spot_in_arc():
     scaled_spot = spot * scaleby 
 
 
-def plot_arc_nc_files(filepath, cem_data_line_profiles):
+def plot_arc_nc_files(filepath):
     files_list = list_nc_files(filepath)
     cross_sections = get_sections_as_lst(files_list)
     log_cross_sections = log_data(cross_sections)   
     image_2D_sections(cross_sections, log_cross_sections)
     line_profiles = get_line_profile(cross_sections) 
-    plot_image_profile(log_cross_sections, line_profiles, cem_data_line_profiles)
-plot_arc_nc_files(arc_nc_filepath, cem_data_line_profiles=[])
+    plot_image_profile(log_cross_sections, line_profiles)
+plot_arc_nc_files(arc_nc_filepath)
+
+def get_arc_nc_data(filepath):
+    files_list = list_nc_files(filepath)
+    cross_sections = get_sections_as_lst(files_list)
+    log_cross_sections = log_data(cross_sections)   
+    line_profiles = get_line_profile(cross_sections) 
+    return log_cross_sections, line_profiles, cross_sections, log_cross_sections
+log_cross_sections, line_profiles, cross_sections, log_cross_sections = get_arc_nc_data(arc_nc_filepath)
 
 
 def plot_kwave_sim_files(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_temp_rise, logScale = False):
@@ -340,31 +362,11 @@ def get_kwave_sim_data(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_temp_
     #log_cem43 = log_data(rot_lst_cem43)
     #image_2D_sections(lst_cem43, log_cem43)
     data_line_profiles = get_line_profile(rot_data) 
-    return matlab_data_lst, rot_data, data_line_profiles
+    log_data_line_profiles = log_data(data_line_profiles)
+    return matlab_data_lst, rot_data, data_line_profiles, log_data_line_profiles
 
-cem_data_lst, cem_rot_data, cem_data_line_profiles = get_kwave_sim_data(
+cem_data_lst, cem_rot_data, cem_data_line_profiles, log_data_line_profiles = get_kwave_sim_data(
                                                            matlab_files_path, 'cem43.mat', 'cem43')
-
-def plot_energy_density_with_cem(filepath, matlab_files_path):
-    
-    cem_data_lst, cem_rot_data, cem_data_line_profiles = get_kwave_sim_data(
-                                                           matlab_files_path, 'cem43.mat', 'cem43')
-    plot_arc_nc_files(filepath, cem_data_line_profiles)
-
-plot_energy_density_with_cem(arc_nc_filepath, matlab_files_path)
-    
-# def plot_arc_and_cem43(filepath):
-#     files_list = list_nc_files(filepath)
-#     cross_sections = get_sections_as_lst(files_list)
-#     log_cross_sections = log_data(cross_sections)   
-#     image_2D_sections(cross_sections, log_cross_sections)
-#     line_profiles = get_line_profile(cross_sections) 
-#     plot_image_profile(log_cross_sections, line_profiles)
-    
-#     cem43_data = get_cem43_data(matlab_files_path, 'cem43.mat', 'cem43')
-# plot_arc_nc_files(arc_nc_filepath)
-
-
 
 
 def plot_biomoleculesPaper_data(filepath):
@@ -394,10 +396,79 @@ def get_survival_fitting_function():
     time_min = [0, 60, 90, 120, 150, 210, 240, 300] 
     # f = fit(time_min,survival_fraction,'exp1');  # this is the exponetial function , 'StartPoint',[100,3]
     # f(300)
+   
+def cem_apply_threshold(cem_rot_data, threshold_number):
+    
+    thresholded_cem_mask_lst = []
+    for cem in range(len(cem_rot_data)):
+        sim = cem_rot_data[cem] 
+        mask = sim > 240
+        # sim[mask] = 10
+        # sim[~mask] = 20
+        thresholded_cem_mask_lst.append(mask)
+    return thresholded_cem_mask_lst
+thresholded_cem_mask_lst = cem_apply_threshold(cem_rot_data, 240) 
 
 
 
 
+def make_boundary_from_mask(thresholded_cem_mask_lst, where_air_starts):
+    
+    cem_xy_boundaries = []
+    for mask in thresholded_cem_mask_lst:   
+        image = np.ascontiguousarray(mask, dtype=np.uint8)
+        contours, hierarchy = cv2.findContours(image,cv2.RETR_TREE,
+                                               cv2.CHAIN_APPROX_SIMPLE)[-2:]
+        xy = np.array(contours)
+        boundary = np.squeeze(xy)
+        if boundary.size > 0: # only this if there is a cem boundary, don't if empty
+            truncated_boundary = np.where(boundary[:, 0] < where_air_starts)
+            cem_xy_boundaries.append(boundary[truncated_boundary]) 
+        else:
+            cem_xy_boundaries.append(np.array([])) #this empty list is to keep track of the files
+       
+    return cem_xy_boundaries
+cem_xy_boundaries = make_boundary_from_mask(thresholded_cem_mask_lst, 140)
+
+
+
+
+def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries):
+    
+    [absorbDensity_cross_sections, 
+     absorbDensity_line_profiles,
+     cross_sections, 
+     log_cross_sections] =  get_arc_nc_data(arc_nc_filepath)
+    
+    cem_data_lst, cem_rot_data, 
+    cem_data_line_profiles, 
+    log_data_line_profiles = get_kwave_sim_data(matlab_files_path, 'cem43.mat', 'cem43')
+    
+    fig, ax = plt.subplots(3, 2, figsize=(20,13))
+    fig.tight_layout()
+    x=resolution_in_mm_vector()
+    # axes are in a two-dimensional array, indexed by [row, col]
+    for r in range(3):
+        for c in range(2):  
+            if c%2 == 0:
+                img = ax[r, c].imshow(log_cross_sections[r], cmap='jet', vmin=1, vmax=7)
+                ax[r, c].tick_params(axis='both', which='major', labelsize=20)
+                ax[r, c].tick_params(axis='both', which='minor', labelsize=8)
+                if cem_xy_boundaries[r].size: # this checks if the list is empty and if so, ignores it
+                    ax[r,c].plot(cem_xy_boundaries[r][:, 0], cem_xy_boundaries[r][:, 1], linewidth=5, color='blue')
+                cbar = fig.colorbar(img, ax=ax[r,c])
+                cbar.ax.set_ylabel('absorption density (W/m$^3$)', fontsize=20, labelpad= 25)
+                cbar.ax.tick_params(labelsize=20)
+
+            else: 
+                ax[r, c].semilogy(resolution_in_mm_vector(), absorbDensity_line_profiles[r], linewidth=5, color='black')
+                ax[r, c].semilogy(resolution_in_mm_vector(), cem_data_line_profiles[r], linewidth=5, color='blue')
+                ax[r, c].axis(ymin=10,ymax=1e7)
+                ax[r, c].tick_params(axis='both', which='major', labelsize=20)
+                ax[r, c].set_xlabel('(mm)', fontsize=25)
+                #ax[r, c].set_ylabel('absorption density (W/m$^3$)', fontsize=20, rotation=360)
+plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries)  
+          
 
 #BELOW WAS A TEST FOR A SINGLE FILE
 #filepath = '/Users/charliejeynes/Projects/dia/sim_data/absorption_dens_4mm_GNR.nc'
