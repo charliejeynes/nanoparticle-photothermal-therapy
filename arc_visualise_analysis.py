@@ -12,6 +12,8 @@ results
 """
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
 import numpy as np
 #import pandas as pd
 import netCDF4
@@ -34,10 +36,22 @@ plt.close('all')
 
 # arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
 
-arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing/'
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing/'
+
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_2mm_back/'
+
+arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_4mm_back/'
+
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_optimised_for_max_tumour_depth/'
 
 matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/'
-a = os.listdir(arc_nc_filepath) 
+
+# max_tumour_depth = 120
+# power = [0.1, 0.2, 0.3]
+# max_tumour_depth = 100
+# power = [0.3, 0.5, 0.7]
+max_tumour_depth = 80
+power = [0.6, 0.8, 1]
 
 
 def list_nc_files(filepath):
@@ -138,7 +152,9 @@ def resolution_in_mm_vector():
     resolution_in_mm = np.arange(0,201, 1) / 10
     # print(resolution_in_mm, resolution_in_mm.size) 
     return resolution_in_mm
-resolution_in_mm_vector()
+
+
+
 
 def get_2D_section(datacube, slice_pos_in_y):
     
@@ -286,7 +302,6 @@ def plot_hirsch_data():
     plt.xlabel('Depth from skin surface (mm)')
     plt.legend(loc="upper right")
     
-plot_hirsch_data()
 
 def covert_spotsize_to_power(spot_radius = 0.25, power_quoted = 4):
     
@@ -301,7 +316,7 @@ def covert_spotsize_to_power(spot_radius = 0.25, power_quoted = 4):
     
     power_in_spot = power_quoted / spot_area
     return power_in_spot
-power_in_spot = covert_spotsize_to_power(spot_radius = 0.15, power_quoted = 1)
+
     
 def rotate_2D_section(lst_of_heat_sims):
     
@@ -325,7 +340,7 @@ def plot_arc_nc_files(filepath):
     image_2D_sections(cross_sections, log_cross_sections)
     line_profiles = get_line_profile(cross_sections) 
     plot_image_profile(log_cross_sections, line_profiles)
-plot_arc_nc_files(arc_nc_filepath)
+arc_figs = plot_arc_nc_files(arc_nc_filepath)
 
 def get_arc_nc_data(filepath):
     files_list = list_nc_files(filepath)
@@ -396,7 +411,9 @@ def get_survival_fitting_function():
     time_min = [0, 60, 90, 120, 150, 210, 240, 300] 
     # f = fit(time_min,survival_fraction,'exp1');  # this is the exponetial function , 'StartPoint',[100,3]
     # f(300)
-   
+ 
+    
+    
 def cem_apply_threshold(cem_rot_data, threshold_number):
     
     thresholded_cem_mask_lst = []
@@ -408,7 +425,6 @@ def cem_apply_threshold(cem_rot_data, threshold_number):
         thresholded_cem_mask_lst.append(mask)
     return thresholded_cem_mask_lst
 thresholded_cem_mask_lst = cem_apply_threshold(cem_rot_data, 240) 
-
 
 
 
@@ -433,7 +449,7 @@ cem_xy_boundaries = make_boundary_from_mask(thresholded_cem_mask_lst, 140)
 
 
 
-def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries):
+def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_depth_tumour_mm, power):
     
     [absorbDensity_cross_sections, 
      absorbDensity_line_profiles,
@@ -445,64 +461,160 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries):
     log_data_line_profiles = get_kwave_sim_data(matlab_files_path, 'cem43.mat', 'cem43')
     
     fig, ax = plt.subplots(3, 2, figsize=(20,13))
-    fig.tight_layout()
+    #fig.tight_layout()
     x=resolution_in_mm_vector()
     # axes are in a two-dimensional array, indexed by [row, col]
     for r in range(3):
         for c in range(2):  
-            if c%2 == 0:
-                img = ax[r, c].imshow(log_cross_sections[r], cmap='jet', vmin=1, vmax=7)
+            if c%2 == 0: # this images the 2d cross sections of simulations, with cem43 lesion overlayed  
+                img = ax[r, c].imshow(log_cross_sections[r], cmap='jet', vmin=0.1, vmax=7.5)
                 ax[r, c].tick_params(axis='both', which='major', labelsize=20)
                 ax[r, c].tick_params(axis='both', which='minor', labelsize=8)
+
                 if cem_xy_boundaries[r].size: # this checks if the list is empty and if so, ignores it
                     ax[r,c].plot(cem_xy_boundaries[r][:, 0], cem_xy_boundaries[r][:, 1], linewidth=5, color='blue')
                 cbar = fig.colorbar(img, ax=ax[r,c])
                 cbar.ax.set_ylabel('absorption density (W/m$^3$)', fontsize=20, labelpad= 25)
                 cbar.ax.tick_params(labelsize=20)
+                # cbar.ax.set_yticklabels([1,3,5,7])
+                
+                
+                # Where we want the ticks, in pixel locations
+                ticks = np.arange(0, 201, 1)
+                # What those pixel locations correspond to in data coordinates.
+                # Also set the float format here
+                ticklabels = ["{:6.0f}".format(i) for i in ticks/10]
+                # ticklabels = ticks/10
+                
+                
+                ax[r, c].set_xticks(ticks)
+                ax[r, c].set_xticklabels(ticklabels)
+                ax[r, c].set_yticks(ticks)
+                ax[r, c].set_yticklabels(ticklabels)
 
+                
+
+                n = 40  # Keeps every nth label
+                [l.set_visible(False) for (i,l) in enumerate(ax[r, c].xaxis.get_ticklabels()) if i % n != 0]
+                [l.set_visible(False) for (i,l) in enumerate(ax[r, c].yaxis.get_ticklabels()) if i % n != 0]
+                
+                ax[2, 0].set_xlabel('(mm)', fontsize=25, labelpad = 0)
+                ax[r, c].set_ylabel('(mm)', fontsize=25, labelpad = 0)
+                
+                ax[r, c].set_title('Power = %1.2f' %power[r], fontsize=25)
+                
             else: 
-                ax[r, c].semilogy(resolution_in_mm_vector(), absorbDensity_line_profiles[r], linewidth=5, color='black')
-                ax[r, c].semilogy(resolution_in_mm_vector(), cem_data_line_profiles[r], linewidth=5, color='blue')
-                ax[r, c].axis(ymin=10,ymax=1e7)
+                ax[r, c].semilogy(resolution_in_mm_vector(), absorbDensity_line_profiles[r], linewidth=5, color='black', label= 'absorbance density (W/m$^3$)' )
+                ax[r, c].semilogy(resolution_in_mm_vector()[:140], cem_data_line_profiles[r][:140], linewidth=5, color='blue', label='CEM43')
+                ax[r, c].semilogy(resolution_in_mm_vector(), np.repeat(240, 201), '--', linewidth=5, color='purple', label='ablation threshold (CEM43>240)')
+                ax[r, c].semilogy(np.repeat(max_depth_tumour_mm[r], 7), np.array([1,1e2,10e3, 10e4, 10e5, 10e6, 10e7]), '--', linewidth=5, color='red', label='max depth of tumour')
+                ax[r, c].axis(ymin=10,ymax=3e7)
+                ax[0, 1].legend(loc='upper left', fontsize=17)
                 ax[r, c].tick_params(axis='both', which='major', labelsize=20)
-                ax[r, c].set_xlabel('(mm)', fontsize=25)
-                #ax[r, c].set_ylabel('absorption density (W/m$^3$)', fontsize=20, rotation=360)
-plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries)  
+                # Make a plot with major ticks that are multiples of 20 and minor ticks that
+                # are multiples of 5.  Label major ticks with '%d' formatting but don't label
+                # minor ticks.
+                ax[r, c].xaxis.set_major_locator(MultipleLocator(2))
+                ax[r, c].xaxis.set_major_formatter(FormatStrFormatter('%d'))
+                # For the minor ticks, use no labels; default NullFormatter.
+                ax[r, c].xaxis.set_minor_locator(MultipleLocator(0.2))
+                ax[2, 1].set_xlabel('(mm)', fontsize=25)
+    plt.tight_layout()
+
+plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, [12,10,8], power)  
           
 
-#BELOW WAS A TEST FOR A SINGLE FILE
-#filepath = '/Users/charliejeynes/Projects/dia/sim_data/absorption_dens_4mm_GNR.nc'
-# source = '/Users/charliejeynes/Projects/dia/dia/output/mcrt/hits.nc'
-
-# def read_nc_file(filepath):
-#     ''' 
-#     reads in SINGLE data from .nc file output from ARCTORUS and returns a 2D cross 
-#     section of the datacube
-#     '''
-#     nc = netCDF4.Dataset(filepath)
-#     print(nc.variables.keys()) # get all variable names
-#     data = nc.variables['data']  # access variable
-#     print(data) 
-#     section = data[:,100, :]
-#     section = section.data
-#     nc.close()
-#     return  section
-
-# section = read_nc_file(filepath)
 
 
-# sectionLog = np.log10(section) # log10 transform data
-# def image_2D_section(section, sectionlog):
-# # view the native data and log10 data
-#     fig, (ax0, ax1) = plt.subplots(figsize=(13,5), ncols=2)
-#     img = ax0.imshow(section, cmap='jet', vmin=1e5, vmax=1e7)
-#     fig.colorbar(img, ax=ax0)
-#     img = ax1.imshow(sectionLog,cmap='jet') # logged image
-#     fig.colorbar(img, ax=ax1)
-#     plt.show()
-# image_2D_section(section, sectionLog)
+def cem_at_max_tumour_depth(max_tumour_depth, power):
+    
+    cem_data_lst, cem_rot_data, cem_data_line_profiles, log_data_line_profiles = get_kwave_sim_data(
+                                                           matlab_files_path, 'cem43.mat', 'cem43')
+    
+     # reolution of the grid
+    cem_at_max_tumour_depth = []
+    
+    for cem in cem_data_line_profiles:
+        cem_at_max_tumour_depth.append(cem[max_tumour_depth])
+    
+    fig, ax = plt.subplots(1,1)    
+    ax.semilogy(power, cem_at_max_tumour_depth, 'x')
+    ax.set_xlabel('Power (W)')
+    ax.set_ylabel('CEM43 value at max depth of tumour')
+    
+    x = np.array(power)
+    y = np.array(cem_at_max_tumour_depth)
 
+    p = np.polyfit(x, np.log(y), 1)
+    ax.semilogy(x, np.exp(p[0] * x + p[1]), 'g--')
+    ax.legend(['data','exponential fit'])
+    plt.show(fig)
+    
+    
+    optimised_power = (np.log(240) - p[1] ) / p[0]
+    return optimised_power    
+optimised_power = cem_at_max_tumour_depth(max_tumour_depth, power) #
+print('The optimised power is', optimised_power)      
+    
+def combine_figs_as_pdf():
+    filepath = '/Users/charliejeynes/Projects/git_NP_PTT/saved_figures/'
+    print('to do')
 
+def optimised_power_to_ablate_tumour_with_depth():
+    
+    '''
+    max tumour depth is in unit of the resolution of the grid
+    
+    power is a list of the powers (floats in Watts) used for each simulation
 
-
- 
+    '''
+    
+    max_depth_of_tumour = [0, 2, 4] #this is in mm
+    ten_mins_optimised_power_to_ablate_tumour = [0.19, 0.35, 0.77] # these numbers are the results of running this script on the simulations changing the tumour depth
+    five_mins_optimised_power_to_ablate_tumour = [0.21, 0.39, 0.865]
+    two_mins_optimised_power_to_ablate_tumour = [0.24, 0.499, 1.15]
+    
+    
+    
+    fig, ax = plt.subplots(1, 1)
+    ax.semilogy(max_depth_of_tumour, ten_mins_optimised_power_to_ablate_tumour, '-x', color='blue', label='ten minutes irradiance')
+    ax.semilogy(max_depth_of_tumour, five_mins_optimised_power_to_ablate_tumour, '-x', color='red', label='five minutes irradiance')
+    ax.semilogy(max_depth_of_tumour, two_mins_optimised_power_to_ablate_tumour, '-x', color='green', label='two minutes irradiance')
+    ax.set_ylabel('optimised_power_to_ablate_tumour (W)')
+    ax.set_xlabel('max_depth_of_tumour (mm)')
+    ax.legend()
+optimised_power_to_ablate_tumour_with_depth()  
+    
+def ratio_ablated_normal_tissue_to_tumour(thresholded_cem_mask_lst, radius_of_tumour=10):
+    
+    '''
+    **only works for the optimised simualtions**
+    this takes the thresholded cem mask list for the 3 optimised laser powers to ablate to the back of the tumour
+    and plots against the depth of the tumour (top most surface)
+    The aim is to show how much normal tissue is ablated with respect to depth the destroy the tumour. 
+    
+    '''
+    
+    #tumour_2d_area = 3.14 * (radius_of_tumour ** 2)
+    
+    num_pixels_in_tumour = 3.14 * (radius_of_tumour ** 2)
+    
+    num_pixel_in_cem_ablation = []
+    for cem in thresholded_cem_mask_lst:
+        num_pixel_in_cem_ablation.append(np.sum(cem))
+        
+    ratio = []
+    for ablation in num_pixel_in_cem_ablation:
+        ratio.append(ablation / num_pixels_in_tumour)
+    
+    max_depth_of_tumour = [0, 2, 4] 
+    
+    fig, ax = plt.subplots(1, 1)
+    ax.semilogy(max_depth_of_tumour, ratio, 'x')
+    ax.set_ylabel('areal ratio of ablated normal tissue \n to tumour tissue')
+    ax.set_xlabel('max_depth_of_tumour (mm)')
+# ratio_ablated_normal_tissue_to_tumour(thresholded_cem_mask_lst, radius_of_tumour=10)
+    
+    
+  
+   
