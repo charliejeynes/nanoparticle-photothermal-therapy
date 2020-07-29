@@ -11,17 +11,22 @@ results
 
 """
 
+import matplotlib as mpl
+mpl.rcParams.update(mpl.rcParamsDefault)
 import matplotlib.pyplot as plt
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
                                AutoMinorLocator)
 import numpy as np
-#import pandas as pd
+import pandas as pd
 import netCDF4
 import sys
 import os
 import scipy.io as spio
 import cv2 as cv2
 from skimage.measure import label, regionprops
+import glob
+
+
 
 
 plt.close('all')
@@ -36,22 +41,37 @@ plt.close('all')
 
 # arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
 
-# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing/'
 
-# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_2mm_back/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_2mm_back/'
 
-arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_4mm_back/'
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_4mm_back/'
 
-# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_optimised_for_max_tumour_depth/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_optimised_for_max_tumour_depth/'
+
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour1mm_power_changing/'
+
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing/'; 
+
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing/'; 
+
+arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS/'
 
 matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/'
 
-# max_tumour_depth = 120
-# power = [0.1, 0.2, 0.3]
+x = 12
+max_depth_tumour_mm = [x, x, x]
+max_tumour_depth = 120
+power = [0.3, 0.5, 0.7]
 # max_tumour_depth = 100
 # power = [0.3, 0.5, 0.7]
-max_tumour_depth = 80
-power = [0.6, 0.8, 1]
+# max_tumour_depth = 80
+# power = [0.6, 0.8, 1]
+
+# name_to_save_file = '0mm_back_5mins_heat'
+# name_to_save_file = '2mm_back_5mins_heat'
+# name_to_save_file = '4mm_back_5mins_heat'
+name_to_save_file = 'spot6mm_1mmtumour_5mins_heat'
 
 
 def list_nc_files(filepath):
@@ -101,7 +121,7 @@ def read_nc(file):
     print(nc.variables.keys()) # get all variable names
     datacube = nc.variables['data']  # access variable
     print(datacube)
-    datacube = datacube[:,:, :] 
+    datacube = datacube[:,:,:] 
     datacube = datacube.data   # this gets the vakues from the masked array
     nc.close()
     return  datacube
@@ -504,7 +524,7 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_
                 ax[r, c].set_title('Power = %1.2f' %power[r], fontsize=25)
                 
             else: 
-                ax[r, c].semilogy(resolution_in_mm_vector(), absorbDensity_line_profiles[r], linewidth=5, color='black', label= 'absorbance density (W/m$^3$)' )
+                ax[r, c].semilogy(resolution_in_mm_vector(), absorbDensity_line_profiles[r], linewidth=5, color='black', label= 'absorption density (W/m$^3$)' )
                 ax[r, c].semilogy(resolution_in_mm_vector()[:140], cem_data_line_profiles[r][:140], linewidth=5, color='blue', label='CEM43')
                 ax[r, c].semilogy(resolution_in_mm_vector(), np.repeat(240, 201), '--', linewidth=5, color='purple', label='ablation threshold (CEM43>240)')
                 ax[r, c].semilogy(np.repeat(max_depth_tumour_mm[r], 7), np.array([1,1e2,10e3, 10e4, 10e5, 10e6, 10e7]), '--', linewidth=5, color='red', label='max depth of tumour')
@@ -521,12 +541,16 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_
                 ax[2, 1].set_xlabel('(mm)', fontsize=25)
     plt.tight_layout()
 
-plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, [12,10,8], power)  
+plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_depth_tumour_mm, power)  
           
 
 
 
 def cem_at_max_tumour_depth(max_tumour_depth, power):
+    
+    '''this measures the cem43 value at the very back of the tumour, and then fits an exponential 
+    to the points, so that the optmised power can be extapolated, which is predicted to ablated the 
+    tumour, but with minimal tissue damage'''
     
     cem_data_lst, cem_rot_data, cem_data_line_profiles, log_data_line_profiles = get_kwave_sim_data(
                                                            matlab_files_path, 'cem43.mat', 'cem43')
@@ -560,7 +584,7 @@ def combine_figs_as_pdf():
     filepath = '/Users/charliejeynes/Projects/git_NP_PTT/saved_figures/'
     print('to do')
 
-def optimised_power_to_ablate_tumour_with_depth():
+def optimised_power_and_time_to_ablate_tumour_with_depth():
     
     '''
     max tumour depth is in unit of the resolution of the grid
@@ -583,7 +607,7 @@ def optimised_power_to_ablate_tumour_with_depth():
     ax.set_ylabel('optimised_power_to_ablate_tumour (W)')
     ax.set_xlabel('max_depth_of_tumour (mm)')
     ax.legend()
-optimised_power_to_ablate_tumour_with_depth()  
+optimised_power_and_time_to_ablate_tumour_with_depth()  
     
 def ratio_ablated_normal_tissue_to_tumour(thresholded_cem_mask_lst, radius_of_tumour=10):
     
@@ -613,7 +637,78 @@ def ratio_ablated_normal_tissue_to_tumour(thresholded_cem_mask_lst, radius_of_tu
     ax.semilogy(max_depth_of_tumour, ratio, 'x')
     ax.set_ylabel('areal ratio of ablated normal tissue \n to tumour tissue')
     ax.set_xlabel('max_depth_of_tumour (mm)')
-# ratio_ablated_normal_tissue_to_tumour(thresholded_cem_mask_lst, radius_of_tumour=10)
+ratio_ablated_normal_tissue_to_tumour(thresholded_cem_mask_lst, radius_of_tumour=10)
+    
+def save_ablation_masks_per_depth(name_to_save_file):
+    np.save(name_to_save_file, thresholded_cem_mask_lst)
+save_ablation_masks_per_depth(name_to_save_file)    
+
+# def open_saved_ablation_masks_into_dict():
+#     ablated_masks_dict = {}
+#     for np_name in glob.glob('*.np[yz]'):
+#         ablated_masks_dict[np_name] = np.load(np_name)
+
+# def unpack_ablation_mask_dict():
+#     lst = []
+#     for name in ablated_masks_dict:
+#         for i in range(3):
+#             lst.append(sum(sum(ablated_masks_dict[name][1, : ,:])))
+
+def get_npz_filenames_lst():
+    lst_npz_names = []
+    for np_name in glob.glob('*.np[yz]'):
+        lst_npz_names.append(np_name)
+    return lst_npz_names   
+        
+def get_ablated_areas_from_npz_files():
+    tumour_depth_names_lst = []
+    num_pixel_in_ablation_lst = []
+    for npz in get_npz_filenames_lst():
+        test_lst = np.load(npz)        
+        for cem in test_lst:
+            num_pixel_in_ablation_lst.append(np.sum(cem))   
+            tumour_depth_names_lst.append(npz)
+    return tumour_depth_names_lst, num_pixel_in_ablation_lst
+
+def combine_cem_thresholds_into_dataframe():
+    
+    power = [0.6, 0.8, 1, 0.3, 0.5, 0.7, 0.1, 0.2, 0.3 ]
+    d = {'power (W)': power, 'tumour depth': get_ablated_areas_from_npz_files()[0], 
+                            'cem43>240 area': get_ablated_areas_from_npz_files()[1]}
+    
+    return pd.DataFrame(data=d)
+    
+         
+def plot_area_of_ablation_vs_power():
+    
+    import seaborn as sns
+    sns.set()
+    
+    
+    df = combine_cem_thresholds_into_dataframe()
+    
+    df['tumour depth'] = df['tumour depth'].str.replace('_back_5mins_heat.npy', '')
+    
+    ax = sns.lineplot(x="power (W)", y="cem43>240 area", data=df, hue="tumour depth",
+                        style='tumour depth', markers=True, dashes=False)
+    plt.show()
+# plot_area_of_ablation_vs_power()   
+    
+    
+def plot_optimised_power_to_ablate_tumour_vs_diameter():
+    
+    tumour_diameter = [2, 4, 6]
+    optimised_power = [0.21, 0.37, 0.78]
+    
+    fig, ax = plt.subplots()
+    ax.plot(tumour_diameter, optimised_power, '-x')
+    ax.set_xlabel('tumour diameter (mm)')
+    ax.set_ylabel('optimised power (W) for tumour treatment')
+plot_optimised_power_to_ablate_tumour_vs_diameter()
+    
+    
+    
+    
     
     
   
