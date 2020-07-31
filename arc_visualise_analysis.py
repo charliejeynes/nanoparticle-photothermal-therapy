@@ -32,41 +32,35 @@ import glob
 plt.close('all')
 
 #filepath = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/power1W/'
-
 #filepath = '/Users/charliejeynes/Projects/git_NP_PTT/'
-
 #filepath = '/Users/charliejeynes/Projects/git_NP_PTT/six_minutes.mat'
-
 #filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
 
 # arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'
-
 #arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing/'
-
 #arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_2mm_back/'
-
 # arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_4mm_back/'
-
 #arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_optimised_for_max_tumour_depth/'
-
 # arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour1mm_power_changing/'
-
-#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing/'; 
-
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing/'; 
 # arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing/'; 
-
-arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS_test/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_NO_GNRS/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS_optimised/'
+arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_with_GNRS_optimised/'
 
 matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/'
 
-x = 12
-max_depth_tumour_mm = [x, x, x]
-max_tumour_depth = 120
-power = [0.3, 0.5, 0.7]
-# max_tumour_depth = 100
-# power = [0.3, 0.5, 0.7]
+x = 8
+max_depth_tumour_mm = [12, 10, 8]
+max_tumour_depth = 80
+power = [0.21, 0.37, 0.78]
+# # max_tumour_depth = 100
+# # power = [0.3, 0.5, 0.7]
 # max_tumour_depth = 80
-# power = [0.6, 0.8, 1]
+# power = [0.6, 0.8, 1.0]
 
 # name_to_save_file = '0mm_back_5mins_heat'
 # name_to_save_file = '2mm_back_5mins_heat'
@@ -312,29 +306,34 @@ def plot_hirsch_data():
     control_1min =    [5,  6, 5,    4,  3,  2.5,  2,   1] # heat rise in C
     control_6min =    [12, 13.5, 11.5, 9,  9,  8.0,  7.5, 6] # heat rise in C
 
-    # biomolecules_data = [8.2, 6.4, 4.9, 3.7, 2.7, 1.8, 1.4]
+    biomolecules_data = [6.4, 8.2, 6.4, 4.9, 3.7, 2.7, 1.8, 1.4]
 
     plt.figure(1)
     plt.plot(depth_from_skin, control_6min, '-b', label= 'Hirscht et al') 
-    # plt.plot(depth_from_skin, biomolecules_data, '-r', label= 'biomolecules paper')
+    plt.plot(depth_from_skin, biomolecules_data, '-r', label= 'biomolecules paper')
     plt.ylim(0, 15)
     plt.ylabel('Temperature rise (C)')
     plt.xlabel('Depth from skin surface (mm)')
     plt.legend(loc="upper right")
     
 
-def covert_spotsize_to_power(spot_radius = 0.25, power_quoted = 4):
+def covert_spotsize_to_power(spot_radius = 0.25, watts_per_cm2 = 4):
     
     ''' this takes the spot diameter (usually ~5mm) in mm  and power quoted 
     in a paper (W/cm^2) and converts it to the 
     the power in the spot
     '''
-
-    #spot_radius = 0.25 # cm
-    spot_area = 3.14 / 4 * spot_radius**2
-    #power_quoted = 4 # W/cm^2
     
-    power_in_spot = power_quoted / spot_area
+    watts_per_cm2 = 1
+    area_in_cm2 = 3.14 * (0.5**2)
+    area_in_spot = 3.14 * (0.25**2)
+    difference = area_in_cm2  / area_in_spot
+    power_in_spot = watts_per_cm2 / difference
+    # spot_radius = 0.25 # cm
+    # spot_area = 3.14 / 4 * spot_radius**2
+    # power_quoted = 4 # W/cm^2
+    
+    # power_in_spot = power_quoted / spot_area
     return power_in_spot
 
     
@@ -698,16 +697,33 @@ def plot_area_of_ablation_vs_power():
 def plot_optimised_power_to_ablate_tumour_vs_diameter():
     
     tumour_diameter = [2, 4, 6]
-    optimised_power = [0.21, 0.37, 0.78]
+    optimised_power_high_GNRs = [0.21, 0.37, 0.78]
+    optimised_power_control = [0.33, 0.42, 0.7]
     
     fig, ax = plt.subplots()
-    ax.plot(tumour_diameter, optimised_power, '-x')
+    ax.plot(tumour_diameter, optimised_power_high_GNRs, '-x', label= 'high conc GNRs')
+    ax.plot(tumour_diameter, optimised_power_control, '-o', label= 'control (no GNRs)', color = 'red')
     ax.set_xlabel('tumour diameter (mm)')
     ax.set_ylabel('optimised power (W) for tumour treatment')
+    ax.legend()
 plot_optimised_power_to_ablate_tumour_vs_diameter()
     
     
+def get_20_percent_high_and_low(absorption_scattering, std_value):
     
+    twenty_percent_above_below_lst = []
+    
+    for value in absorption_scattering:
+        
+         twenty_percent_above_below_lst.append(value * std_value)
+         twenty_percent_above_below_lst.append(value / std_value)
+                 
+    return twenty_percent_above_below_lst
+    
+    
+twenty_percent_above_below_lst = get_20_percent_high_and_low([2.2, 21.1], 1.5)    
+    
+  
     
     
     
