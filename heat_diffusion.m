@@ -26,7 +26,7 @@ close all
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/'; 
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/move_back_tumour/power1W/'; 
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/compare_to_hirscht/';
-directory ='/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'; 
+%directory ='/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/'; 
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing/'; 
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_2mm_back/'; 
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power_changing_4mm_back/';
@@ -34,6 +34,11 @@ directory ='/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power0.28/';
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing/'; 
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing/'; 
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS_test/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_NO_GNRS/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS_optimised/';
+directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_with_GNRS_optimised/';
 
 file_names = get_file_paths(directory);
 number_of_files = length(file_names); 
