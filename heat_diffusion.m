@@ -11,7 +11,6 @@ close all
 %% test 
 
 % save('with_air_boundary_heat_sim.mat', 'heat_simulation')
-
 % six_minutes = temperature_image{1,1};
 % six_minutes = reshape(six_minutes(:, 10), 201, 201); 
 % imagesc(six_minutes)
@@ -36,26 +35,242 @@ close all
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS/';
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS_test/';
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_NO_GNRS/';
-%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS/';
-%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS_optimised/';
-directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_with_GNRS_optimised/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS_optimised/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_with_GNRS_optimised/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/just_one_arc_file_test/'; 
+% the following are all run as 3D simulations
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_tumour_as_flesh/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_tumour_as_flesh/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_high_GNRs_3d/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_high_GNRs_3d/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_high_GNRs_3d/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_tumour_high_absorbance_3D/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_tumour_as_flesh_3D/';
+directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power1W_4mmtumour_10^6photons/';
 
-file_names = get_file_paths(directory);
-number_of_files = length(file_names); 
+%visualise the .nc simualtion in 3D
+[file_names, datacube] = visualise_in_3d(directory); 
 
 
-% run the simulation
-% run_simulation(number_of_files, directory, file_names)
+% file_names = get_file_paths(directory);
+% number_of_files = length(file_names); 
+% 
+% %run the simulation 3D
+% [cem43_list, temperature_image_list]= run_sim_3D_all_files_in_folder(directory, file_names, number_of_files); 
+% 
+% %run the simulation 2D
+% %[cem43_list, temperature_image_list] = run_in_2D(directory, file_names, number_of_files);
+% 
+% % save cem43, temperature final temperature for python to read
+% save_sims_as_dotmat(cem43_list, temperature_image_list)
 
-% function run_simulation(number_of_files, directory, file_names)
 
 
-heat_profile = zeros(number_of_files,201); % this is a matrix of line profiles through each of the heat simulation files
-temperature_image = cell(1,number_of_files); 
-cem43 = zeros(201, 201, number_of_files); 
-lesions = zeros(201, 201, number_of_files); 
-kwave_object_simulations = cell(1,number_of_files); 
+function [cem43_list, temperature_image_list] = run_sim_3D_all_files_in_folder(directory, file_names, number_of_files)
 
+    cem43_list = zeros(201, 201, number_of_files); 
+    %temperature_image_list = cell(1,number_of_files); 
+    temperature_image_list = zeros(201, 201, number_of_files); 
+    
+    for i = 1:number_of_files
+
+        % setup NOTE the grid resolution is set to 201 - change if this is not the
+        % case in your simulations.
+        
+        file = [directory file_names(i).name];
+
+        %datacube = read_biomolecules_dotmat(); % this here is to run the
+        %biomolecules paper 'just_tumour' data - have to hash the next line
+        %if going to run instead
+        datacube = read_nc(file);
+        
+        %run the simulation 3D
+        [cem43, temperature_image] = run_sim_in_3D(datacube); 
+        
+        %collect the data from each .nc file
+        cem43_list(:, :, i) = cem43(:, :); 
+%         temperature_image_list{1, i} = temperature_image;
+        temperature_image_list(:, :, i) = temperature_image(:, :);
+    
+    
+    
+    end
+
+end
+
+
+function [cem43, temperature_image] = run_sim_in_3D(datacube)
+    
+    datacube = datacube; %(1:200, 1:200, 1:200); 
+    mm_of_world = 20; 
+    res = size(datacube);  % get the resolution (size) of the data cube
+    
+    figure, 
+    imagesc(datacube(:, :, 100))
+
+    % specify the medium parameters
+    % create the computational grid
+    Nx = res(1);           % number of grid points in the x (row) direction
+    Ny = res(2);           % number of grid points in the y (column) direction
+    Nz = res(3); 
+
+    % calculate grid point spacing 
+    dx =  (mm_of_world * 1e-3) / res(1); % this is the height (or width / depth) of the 'world' in mm * m / the resolution aka grid points
+    dy =  (mm_of_world * 1e-3) / res(2);
+    dz =  (mm_of_world * 1e-3) / res(2);
+
+    dx = dx;        % grid point spacing in the x direction [m]
+    dy = dy;        % grid point spacing in the y direction [m]
+    dz = dz;        % grid point spacing in the y direction [m]
+    
+    
+    % define medium properties for the heat diffusion equation 
+    medium.density = ones(Nx, Ny, Nz); 
+    medium.density(:, :, :)  = 1079;     % of tissue [kg/m^3]
+    % medium.density(:, airStart:end)  = 1.255; % of air [kg/m^3]
+    % medium.density(airStart:end, :)  = 1.255; % of air [kg/m^3]
+    %figure, imagesc(medium.density)
+
+    medium.thermal_conductivity = ones(Nx, Ny, Nz); 
+    medium.thermal_conductivity(:, :, :)  = 0.52;     % tissue [W/(m.K)]
+    % medium.thermal_conductivity(:, airStart:end)  = 26.02;  % of air [W/(m.K)]
+    % medium.thermal_conductivity(airStart:end,:)  = 26.02;  % of air [W/(m.K)]
+
+    medium.specific_heat = ones(Nx, Ny, Nz);
+    medium.specific_heat(:, :, :)   = 3540;     % of tissue [J/(kg.K)]
+    % medium.specific_heat(:, airStart:end)  = 0718;        % of air [J/(kg.K)]
+    % medium.specific_heat(airStart:end, :)  = 718;        % of air [J/(kg.K)]
+
+    % define medium properties related to perfusion
+    medium.blood_density                = ones(Nx, Ny, Nz);     % [kg/m^3]
+    medium.blood_density(:, :, :)          = 1060;     % [kg/m^3]
+    % medium.blood_density(:, airStart:end)    = 0;     % [kg/m^3]
+%    medium.blood_density(airStart:end, :)    = 0;     % of air [kg/m^3]
+
+    medium.blood_specific_heat          = ones(Nx, Ny, Nz);     % [J/(kg.K)]
+    medium.blood_specific_heat(:, :, :)    = 3617;     % [J/(kg.K)]
+    % medium.blood_specific_heat(:, airStart:end)    = 0;  % [J/(kg.K)]
+    % medium.blood_specific_heat(airStart:end, :)    = 0;  % of air [J/(kg.K)]
+
+    medium.blood_perfusion_rate         = ones(Nx, Ny, Nz);    % [1/s]
+    medium.blood_perfusion_rate(:, :, :)   = 0.01;     % [1/s]
+    % medium.blood_perfusion_rate(:, airStart:end) = 0;     % [1/s]
+    % medium.blood_perfusion_rate(airStart:end, :) = 0;     % of air [1/s]
+
+    medium.blood_ambient_temperature    = ones(Nx, Ny, Nz);       % [degC]
+    medium.blood_ambient_temperature(:, :, :)    = 37;       % [degC]
+    % medium.blood_ambient_temperature(:, airStart:end)   = 22;       % [degC]
+    % medium.blood_ambient_temperature(airStart:end, :)   = 22;      % of air [degC]
+
+    % this is the starting temperature
+    T0 = 37 .* ones(Nx, Ny, Nz); 
+    source.T0 = T0; 
+
+    % testSource = zeros(65,65); 
+    % testSource(30:39, 20:30) = 5e6; 
+    % source.Q = testSource;
+
+    source.Q = datacube; 
+    % set input args
+    input_args = {'PlotScale', [37, 50]};
+
+    % set up the sensor 
+%     sensor.mask = zeros(Nx, Ny);
+%     sensor.mask(:, :) = 1;
+    sensor = []; 
+    
+    kgrid = kWaveGrid(Nx, dx, Ny, dy, Nz, dz);
+%     [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice);
+    % create kWaveDiffusion object
+    kdiff = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:} ); % inputs for kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
+   
+    
+    % take time steps (temperature can be accessed as kdiff.T)
+%     Nt=1; % Nt= time in seconds
+%     dt= 300;   % dt = step size
+%     kdiff.takeTimeStep(Nt, dt); % .takeTimeStep(Nt, dt) 
+    
+% 
+% 
+%         % take time steps
+%         kdiff.takeTimeStep(round(on_time / dt), dt);
+% 
+%         % store the current temperature field
+%         T1 = kdiff.T;
+% 
+%         % turn off heat source and take time steps
+%         kdiff.Q = 0;
+%         kdiff.takeTimeStep(round(off_time / dt), dt);
+% 
+%         % store the current temperature field
+%         T2 = kdiff.T;
+ 
+        % set source on time and off time
+        on_time = 1; % [s]
+        off_time = 1; % [s]
+
+        % set time step size
+        dt = 30;
+        
+        
+        for i=1:3
+            
+            kdiff.Q = datacube;
+            kdiff.takeTimeStep(on_time, dt);
+            kdiff.Q = 0;
+            kdiff.takeTimeStep(off_time, dt)
+            
+        end
+            
+            
+         
+    
+    % % plot the current temperature field
+    figure;
+    kdiff.plotTemp;
+    
+    temperature_image = kdiff.T(:, :, 100); 
+    cem43 = kdiff.cem43(:, :, 100); 
+
+    xslice = []
+    yslice = []
+    zslice = [100]
+
+    hss = slice(kdiff.T,xslice,yslice,zslice); 
+    xs = get(hss,'XData');
+    ys = get(hss,'YData');
+    zs = get(hss,'ZData');
+    cs = get(hss,'CData');
+    
+    figure, 
+    imagesc(cs)
+    title('cs')
+    
+    figure, 
+    imagesc(temperature_image)
+    title('temperature')
+    size(temperature_image)
+    figure, 
+    imagesc(cem43)
+    title('cem43')
+    
+    caxis([37,50])% create and label the colorbar
+    cmap = jet();
+    cb=colorbar;
+    cb.Label.String = 'cem43';
+    
+end 
+
+
+function [cem43_list, temperature_image_list] = run_in_2D(directory, file_names, number_of_files)
+%     heat_profile = zeros(number_of_files,201); % this is a matrix of line profiles through each of the heat simulation files
+    temperature_image_list = zeros(201, 201, number_of_files); 
+    cem43_list = zeros(201, 201, number_of_files); 
+%     lesions = zeros(201, 201, number_of_files); 
+%     kwave_object_simulations = cell(1,number_of_files);
+
+%this is to run a 2D simulation
     for i = 1:number_of_files
 
         % setup NOTE the grid resolution is set to 201 - change if this is not the
@@ -69,6 +284,8 @@ kwave_object_simulations = cell(1,number_of_files);
         %if going to run instead
         datacube = read_nc(file);
         twoD_slice = get_twoD_slice(datacube);
+        
+        
         grid_resolution = get_grid_resolution(twoD_slice); 
         grid_resolution_lst(i) = get_grid_resolution(twoD_slice);
 
@@ -82,44 +299,66 @@ kwave_object_simulations = cell(1,number_of_files);
 %         medium = get_heatDiffusion_constants_hetero(Nx, Ny, airStart);  % Use this one if you want a heterogenous medium e.g. tissue/air
         kgrid = kWaveGrid(Nx, dx, Ny, dy);
         [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice);
+        
+        
         % create kWaveDiffusion object
         heat_simulation = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:} ); % inputs for kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
-        % take time steps (temperature can be accessed as kdiff.T)
+        
+        
+%         take time steps (temperature can be accessed as kdiff.T)
         Nt=1; % Nt=number of timesteps 
         dt= 300;   % dt = time in seconds
         heat_simulation.takeTimeStep(Nt, dt); % .takeTimeStep(Nt, dt) 
+        
+%         set source on time and off time
+        on_time = 1; % [s]
+        off_time = 1; % [s]
 
-        plot_heatDiffusion(heat_simulation) % plot the last temperature field
+        % set time step size
+        dt = 30;
+        
+        
+        for i=1:3
+            
+            heat_simulation.Q = datacube;
+            heat_simulation.takeTimeStep(on_time, dt);
+            heat_simulation.Q = 0;
+            heat_simulation.takeTimeStep(off_time, dt)
+            
+        end
+
+%         plot_heatDiffusion(heat_simulation) % plot the last temperature field
 
         %create kwave simulation object for each file
-        kwave_object_simulations{1, i} = heat_simulation; 
+%         kwave_object_simulations{1, i} = heat_simulation; 
 
 
 
         % collect up the outputs for each file to compare results later 
         % heat_profile(i, :) = heat_simulation.sensor_data(:, Nt); % add heat profiles to a matrix
-        cem43(:, :, i) = heat_simulation.cem43(:, :); 
-        temperature_image{:, i} = heat_simulation.sensor_data;
-        lesions(:, :, i) = heat_simulation.lesion_map(:, :); 
-
+        cem43_list(:, :, i) = heat_simulation.cem43(:, :); 
+        temperature_image_list(:, :, i) = heat_simulation.T(:,:);
+%         lesions(:, :, i) = heat_simulation.lesion_map(:, :); 
+        
+        
     end    
-% end
+    
+    % get data from the kwaveDiffusion object stored in a cell array
+%     get_from_sim_object(kwave_object_simulations, number_of_files, Nt, grid_resolution_lst)
+% 
+%     % compare results of all the .nc files in the folder
+%     plot_heat_profiles(heat_profile)
+%     image_cem43(cem43, number_of_files)
+%     image_lesions(lesions, number_of_files)
+%     plot_line_profile_from_image(cem43, number_of_files)
 
-% get data from the kwaveDiffusion object stored in a cell array
-get_from_sim_object(kwave_object_simulations, number_of_files, Nt, grid_resolution_lst)
+    % get data out of the kwave object files for export to python 
+%     temperature_image_list = extract_temperature_images(temperature_image, number_of_files, grid_resolution); 
 
-% compare results of all the .nc files in the folder
-plot_heat_profiles(heat_profile)
-image_cem43(cem43, number_of_files)
-image_lesions(lesions, number_of_files)
-plot_line_profile_from_image(cem43, number_of_files)
-
-% get data out of the kwave object files for export to python 
-temperature_image_list = extract_temperature_images(temperature_image, number_of_files, grid_resolution); 
-
-% save cem43, legions and temperature final temperature for python to read
-save_sims_as_dotmat(cem43, temperature_image_list)
-
+    % save cem43, legions and temperature final temperature for python to read
+    save_sims_as_dotmat(cem43_list, temperature_image_list)
+    
+end
 
 function file_names = get_file_paths(directory)
     
@@ -377,12 +616,12 @@ function grid_resolution = get_grid_resolution(twoD_slice)
 
 end
 
-function save_sims_as_dotmat(cem43, temperature_image_list)
+function save_sims_as_dotmat(cem43_list, temperature_image_list)
 
    
 %     struct_kwave_object = struct(cem43)
 %     save('/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/cem43.mat', 'cem43'); 
-    save('/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/cem43.mat', 'cem43');
+    save('/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/cem43_list.mat', 'cem43_list');
     save('/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/temperature_image_list.mat', 'temperature_image_list');
 
 end 
@@ -431,6 +670,127 @@ function get_cem_boundary(cem43, number_of_files)
         
         
     end
+
+
+end
+
+
+function [file_names, datacube] = visualise_in_3d(directory)
+
+    file_names = get_file_paths(directory);
+    number_of_files = length(file_names); 
+    
+    for i = 1:number_of_files
+
+    % setup NOTE the grid resolution is set to 201 - change if this is not the
+    % case in your simulations.
+
+        file = [directory file_names(i).name];
+
+        %datacube = read_biomolecules_dotmat(); % this here is to run the
+        %biomolecules paper 'just_tumour' data - have to hash the next line
+        %if going to runx instead
+        datacube = read_nc(file);
+        
+        
+        datacube_log = log10(datacube); 
+        datacube_log_rotate = rot90_3D(datacube_log, 2, 1);
+        datacube_log_rotate = datacube_log_rotate(60:140, 55:170, 100:145); 
+
+
+        xslice = [50, 90]
+        yslice = [80]
+        zslice = [1]
+        
+        f = figure;
+        ax = axes;
+
+        hss = slice(datacube_log_rotate,xslice,yslice,zslice); 
+        
+        set(hss,'edgecolor','none')
+
+        
+        daspect([1,1,1])
+        axis tight
+        view(-38.5,16)
+        camzoom(1.6)
+        camproj perspective
+        
+        lightangle(-45,45)
+        
+%         ax.CameraPosition = [-145.5 -229.7 283.6];
+%         ax.CameraTarget = [77.4 60.2 63.9];
+%         ax.CameraUpVector = [0 0 1];
+%         ax.CameraViewAngle = 36.7;
+%         
+%         ax.Position = [0 0 1 1];
+%         ax.DataAspectRatio = [1 1 .9];
+%         
+%         l1 = light;
+%         l1.Position = [160 400 80];
+%         l1.Style = 'local';
+%         l1.Color = [0 0.8 0.8];
+% 
+%         l2 = light;
+%         l2.Position = [.5 -1 .4];
+%         l2.Color = [0.8 0.8 0];
+        
+        myColorMap = jet(266); 
+%         myColorMap(1, :) = [1 1 1]; % Set row 1 to white.
+%         myColorMap(2, :) = [1 1 1]; % Set row 1 to white.
+        % Then apply the colormap
+        colormap(myColorMap);
+        
+        caxis([5,7.5]); 
+%         colorbar;
+%         colorbar('vert')
+%         cb=colorbar; 
+%         cb.Label.String = 'absorbance density (W/m^3) (log10)';
+        axis off
+        f.Color = 'black';
+        
+        set(gcf, 'InvertHardCopy', 'off'); 
+        set(gcf,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
+        saveas(gcf,'Peaks.png'); % save as .png file
+
+        
+%         hold on
+%         xs = get(hss,'XData');
+%         ys = get(hss,'YData');
+%         zs = get(hss,'ZData');
+%         cs = get(hss,'CData');
+        
+       
+        
+        
+% 
+%         h = slice(x,y,z,v,xd,yd,zd);
+%         h.FaceColor = 'interp';
+%         h.EdgeColor = 'none';
+%         h.DiffuseStrength = 0.8;
+
+%         cs_log_rotate = rot90(log10(cs), 2); 
+
+% %         figure, 
+% %         imagesc(cs_log_rotate(:, :));
+%        caxis([0,8.1])% create and label the colorbar
+        % imagesc(cs(:, :));
+        % caxis([0,1e8])% create and label the colorbar
+%         cmap = jet();
+%         colormap(cmap);
+
+%         %cb.Label.String = 'hits';
+%         xlabel('mm');
+%         xticklabels({'0','5','10','15','20','25','30','35', '40'});
+%         xticks(0:8:64)
+%         yticklabels({'0','5','10','15','20','25','30','35', '40'});
+%         yticks(0:8:64)
+%         ylabel('mm');
+%         title('tumour')
+        
+    end
+    
+ 
 
 
 end
