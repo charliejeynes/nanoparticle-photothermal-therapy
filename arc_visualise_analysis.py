@@ -47,16 +47,37 @@ plt.close('all')
 #arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS/'
 #arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_NO_GNRS_test/'
 #arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_NO_GNRS/'
-#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS/'
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS/'
 #arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_NO_GNRS_optimised/'
-arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_with_GNRS_optimised/'
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_with_GNRS_optimised/'
+# the folllowing are all run as 3d heat simulations
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_tumour_as_flesh/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_tumour_as_flesh/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_high_GNRs_3d/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_high_GNRs_3d/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_high_GNRs_3d/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_tumour_high_absorbance_3D/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_tumour_as_flesh_3D/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_high_GNRs_3d/';
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power1W_tumourAllSizes_10^4photons_changingOpticalProps/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_powerChanging_tumour4mm_10^5photons_changingOpticalProps/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_check_move_back_from_surface/'; 
+#arc_nc_filepath ='/Users/charliejeynes/Projects/dia/sim_data/2mmTumour_4mmDeep_changeOpticalprops/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/2mmTumour_6mmDeep_6mmBeam_changeOpticalprops/'
+#arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/4mmTumour_surface_focus6m_loc3.1m_dim1m__changeOpticalprops/'
+arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/4mmTumour_surface_6mmBeam_1W_changeOpticalprops/'
+# arc_nc_filepath = '/Users/charliejeynes/Projects/dia/sim_data/1mmSphereLED_in4mmtumour_changeOpticalProps/'
 
-matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/'
 
-x = 8
-max_depth_tumour_mm = [12, 10, 8]
-max_tumour_depth = 80
-power = [0.21, 0.37, 0.78]
+# matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/sim_matlab_files/'
+matlab_files_path = '/Users/charliejeynes/Projects/dia/sim_data/4mmTumour_surface_6mmBeam_1W_changeOpticalprops/'
+
+
+
+x = 10
+max_depth_tumour_mm = [10, 10, 10]
+max_tumour_depth = 10
+power = [9, 2.5, 2]
 # # max_tumour_depth = 100
 # # power = [0.3, 0.5, 0.7]
 # max_tumour_depth = 80
@@ -78,6 +99,8 @@ def list_nc_files(filepath):
     for file in os.listdir(filepath):
         if file.startswith('.'):
             file = []
+        elif 'mat' in file:
+            file = []
         else:
             fullpath = os.path.join(filepath, file)
             files_list.append(fullpath)
@@ -88,7 +111,7 @@ def list_nc_files(filepath):
 
 def get_full_file_path(filepath, data):
     
-    ''' join the filepathto the .mat file name
+    ''' join the filepath to the .mat file name
     '''
     
     return os.path.join(filepath, data)
@@ -119,6 +142,15 @@ def read_nc(file):
     datacube = datacube.data   # this gets the vakues from the masked array
     nc.close()
     return  datacube
+
+# nc_files =  list_nc_files(arc_nc_filepath)
+
+
+# class datacube():
+    
+#     def _init_(self, file, get_the_datacube):
+        
+#         self.datacube = read_nc(file)
 
 
 def read_in_heat_simulation(filepath):
@@ -175,7 +207,7 @@ def get_2D_section(datacube, slice_pos_in_y):
     section = datacube[:, slice_pos_in_y, :]    
     
     return section 
-
+# section = get_2D_section(data, [: ,:, 100])
 
 
 def get_sections_as_lst(files_list):
@@ -183,7 +215,7 @@ def get_sections_as_lst(files_list):
     for file in files_list:
         datacube = read_nc(file)
         section = get_2D_section(datacube, 100)
-    
+        section[:, 140:200] = 0
         cross_sections.append(section)
     return cross_sections
     
@@ -206,7 +238,7 @@ def log_data(cross_sections):
     '''
     log_cross_sections = []
     for section in cross_sections:
-        print(section)
+        # print(section)
         logged = np.log10(section)
         log_cross_sections.append(logged)   
     return log_cross_sections    
@@ -380,12 +412,10 @@ def plot_kwave_sim_files(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_tem
     #image_2D_sections(lst_cem43, log_cem43)
     data_line_profiles = get_line_profile(rot_data) 
     plot_image_profile(rot_data, data_line_profiles, logScale)
-    
-cem_or_temp_rise_dot_mat = 'temperature_image_list.mat'
-cem_or_temp_rise = 'temperature_image_list'
+
 
 plot_kwave_sim_files(matlab_files_path, 'temperature_image_list.mat', 'temperature_image_list', logScale = False)
-plot_kwave_sim_files(matlab_files_path, 'cem43.mat', 'cem43', logScale = True)
+plot_kwave_sim_files(matlab_files_path, 'cem43_list.mat', 'cem43_list', logScale = True)
 
 def get_kwave_sim_data(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_temp_rise):
     matlab_files_path = get_full_file_path(matlab_files_path, cem_or_temp_rise_dot_mat)
@@ -400,7 +430,10 @@ def get_kwave_sim_data(matlab_files_path, cem_or_temp_rise_dot_mat, cem_or_temp_
     return matlab_data_lst, rot_data, data_line_profiles, log_data_line_profiles
 
 cem_data_lst, cem_rot_data, cem_data_line_profiles, log_data_line_profiles = get_kwave_sim_data(
-                                                           matlab_files_path, 'cem43.mat', 'cem43')
+                                                           matlab_files_path, 'cem43_list.mat', 'cem43_list')
+
+temperature_data_lst, temperature_rot_data, temperature_data_line_profiles, temperature_log_data_line_profiles = get_kwave_sim_data(
+                                                           matlab_files_path, 'temperature_image_list.mat', 'temperature_image_list')
 
 
 def plot_biomoleculesPaper_data(filepath):
@@ -467,8 +500,7 @@ cem_xy_boundaries = make_boundary_from_mask(thresholded_cem_mask_lst, 140)
 
 
 
-
-def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_depth_tumour_mm, power):
+def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, max_depth_tumour_mm, power, cem_xy_boundaries=[], temperature_profiles=[]):
     
     [absorbDensity_cross_sections, 
      absorbDensity_line_profiles,
@@ -477,7 +509,7 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_
     
     cem_data_lst, cem_rot_data, 
     cem_data_line_profiles, 
-    log_data_line_profiles = get_kwave_sim_data(matlab_files_path, 'cem43.mat', 'cem43')
+    log_data_line_profiles = get_kwave_sim_data(matlab_files_path, 'cem43_list.mat', 'cem43_list')
     
     fig, ax = plt.subplots(3, 2, figsize=(20,13))
     #fig.tight_layout()
@@ -488,14 +520,14 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_
             if c%2 == 0: # this images the 2d cross sections of simulations, with cem43 lesion overlayed  
                 img = ax[r, c].imshow(log_cross_sections[r], cmap='jet', vmin=0.1, vmax=7.5)
                 ax[r, c].tick_params(axis='both', which='major', labelsize=20)
-                ax[r, c].tick_params(axis='both', which='minor', labelsize=8)
+                # ax[r, c].tick_params(axis='both', which='minor', labelsize=8)
 
-                if cem_xy_boundaries[r].size: # this checks if the list is empty and if so, ignores it
+                if cem_xy_boundaries: # this checks if the list is empty and if so, ignores it
                     ax[r,c].plot(cem_xy_boundaries[r][:, 0], cem_xy_boundaries[r][:, 1], linewidth=5, color='blue')
                 cbar = fig.colorbar(img, ax=ax[r,c])
                 cbar.ax.set_ylabel('absorption density (W/m$^3$)', fontsize=20, labelpad= 25)
                 cbar.ax.tick_params(labelsize=20)
-                # cbar.ax.set_yticklabels([1,3,5,7])
+                cbar.ax.set_yticklabels(['10$^1$','10$^3$','10$^5$'])
                 
                 
                 # Where we want the ticks, in pixel locations
@@ -510,6 +542,7 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_
                 ax[r, c].set_xticklabels(ticklabels)
                 ax[r, c].set_yticks(ticks)
                 ax[r, c].set_yticklabels(ticklabels)
+                
 
                 
 
@@ -520,15 +553,14 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_
                 ax[2, 0].set_xlabel('(mm)', fontsize=25, labelpad = 0)
                 ax[r, c].set_ylabel('(mm)', fontsize=25, labelpad = 0)
                 
-                ax[r, c].set_title('Power = %1.2f' %power[r], fontsize=25)
+                ax[r, c].set_title('seconds = %1.2f' %power[r], fontsize=25)
                 
             else: 
                 ax[r, c].semilogy(resolution_in_mm_vector(), absorbDensity_line_profiles[r], linewidth=5, color='black', label= 'absorption density (W/m$^3$)' )
-                ax[r, c].semilogy(resolution_in_mm_vector()[:140], cem_data_line_profiles[r][:140], linewidth=5, color='blue', label='CEM43')
-                ax[r, c].semilogy(resolution_in_mm_vector(), np.repeat(240, 201), '--', linewidth=5, color='purple', label='ablation threshold (CEM43>240)')
-                ax[r, c].semilogy(np.repeat(max_depth_tumour_mm[r], 7), np.array([1,1e2,10e3, 10e4, 10e5, 10e6, 10e7]), '--', linewidth=5, color='red', label='max depth of tumour')
-                ax[r, c].axis(ymin=10,ymax=3e7)
-                ax[0, 1].legend(loc='upper left', fontsize=17)
+                # ax[r, c].semilogy(resolution_in_mm_vector()[:140], cem_data_line_profiles[r][:140],'-',linewidth=5, color='blue', label='CEM43')
+                # ax[r, c].semilogy(resolution_in_mm_vector(), np.repeat(240, 201), '--', linewidth=2, color='purple', label='ablation threshold (CEM43>240)')
+                ax[r, c].semilogy(np.repeat(max_depth_tumour_mm[r], 7), np.array([1,1e2,10e3, 10e4, 10e5, 10e6, 10e7]), '--', linewidth=2, color='red', label='max depth of tumour')
+                ax[r, c].axis(ymin=10,ymax=1e8)
                 ax[r, c].tick_params(axis='both', which='major', labelsize=20)
                 # Make a plot with major ticks that are multiples of 20 and minor ticks that
                 # are multiples of 5.  Label major ticks with '%d' formatting but don't label
@@ -538,9 +570,24 @@ def plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_
                 # For the minor ticks, use no labels; default NullFormatter.
                 ax[r, c].xaxis.set_minor_locator(MultipleLocator(0.2))
                 ax[2, 1].set_xlabel('(mm)', fontsize=25)
-    plt.tight_layout()
+                ax[0, 1].legend(loc='upper left', fontsize=17)
+                if temperature_profiles:
+                    ax2 = ax[r, c].twinx()  # instantiate a second axes that shares the same x-axis
+                    color = 'tab:red'
+                    ax2.set_ylabel('Temperature ($^o$C)', color=color, fontsize=20)  # we already handled the x-label with ax1
+                    ax2.plot(resolution_in_mm_vector()[:140], temperature_profiles[r][:140], linewidth=5, color=color, label='Temperature ($^o$C)')
+                    ax2.tick_params(axis='y', labelcolor=color, labelsize=20)
+                    ax2.axis(ymin=37,ymax=100)
+                    # ax2.legend(loc='center left', fontsize=17)
 
-plot_absorbDensity_and_cem_profiles(arc_nc_filepath, cem_xy_boundaries, max_depth_tumour_mm, power)  
+                                                 
+    plt.tight_layout()
+    plt.savefig('/Users/charliejeynes/OneDrive - University of Exeter/currently working on/my papers/NPs_scenarios_PTT/figures_NPs_scenarios_paper/output_fig.tiff')
+    
+    
+
+plot_absorbDensity_and_cem_profiles(arc_nc_filepath, max_depth_tumour_mm, power, cem_xy_boundaries, 
+                                    temperature_profiles = temperature_data_line_profiles)  
           
 
 
@@ -552,7 +599,7 @@ def cem_at_max_tumour_depth(max_tumour_depth, power):
     tumour, but with minimal tissue damage'''
     
     cem_data_lst, cem_rot_data, cem_data_line_profiles, log_data_line_profiles = get_kwave_sim_data(
-                                                           matlab_files_path, 'cem43.mat', 'cem43')
+                                                           matlab_files_path, 'cem43_list.mat', 'cem43_list')
     
      # reolution of the grid
     cem_at_max_tumour_depth = []
@@ -696,16 +743,22 @@ def plot_area_of_ablation_vs_power():
     
 def plot_optimised_power_to_ablate_tumour_vs_diameter():
     
+    
+    optimised_power_high_GNRs_2d = [0.21, 0.37, 0.78] # this is done in 2D 
+    
     tumour_diameter = [2, 4, 6]
-    optimised_power_high_GNRs = [0.21, 0.37, 0.78]
-    optimised_power_control = [0.33, 0.42, 0.7]
+    optimised_power_high_GNRs = [0.45, 0.79, 1.44]
+    optimised_power_control = [0.56, 0.78, 1.28] # this is done in 3D 
+    optimised_power_tumour_as_flesh = [0.65, 1.05, 1.45] #this is to see how different the power is if the tumour has the same absorbance as the flesh
     
     fig, ax = plt.subplots()
-    ax.plot(tumour_diameter, optimised_power_high_GNRs, '-x', label= 'high conc GNRs')
-    ax.plot(tumour_diameter, optimised_power_control, '-o', label= 'control (no GNRs)', color = 'red')
+    ax.plot(tumour_diameter, optimised_power_high_GNRs, '-x', label= 'high conc GNRs in tumour')
+    ax.plot(tumour_diameter, optimised_power_control, '-o', label= 'tumour more absorbing than flesh', color = 'red')
+    ax.plot(tumour_diameter, optimised_power_tumour_as_flesh, '-+', label= 'tumour as flesh', color = 'green')
     ax.set_xlabel('tumour diameter (mm)')
-    ax.set_ylabel('optimised power (W) for tumour treatment')
+    ax.set_ylabel('optimised power (W) for cem43>240 at back of tumour')
     ax.legend()
+    plt.show()
 plot_optimised_power_to_ablate_tumour_vs_diameter()
     
     
@@ -719,11 +772,34 @@ def get_20_percent_high_and_low(absorption_scattering, std_value):
          twenty_percent_above_below_lst.append(value / std_value)
                  
     return twenty_percent_above_below_lst
+twenty_percent_above_below_lst = get_20_percent_high_and_low([2.2, 21.1], 1.5)   
+
+
+def calculate_time_from_steps(steps, seconds):
+    
+    return (steps * seconds) / 60
+minutes = calculate_time_from_steps(14, 50) 
+    
+def plot_time_to_CEM_vs_U_ratio():
+    get_ratio = [36/0.7, 21/2.1, 22/14]
+    get_mins = [9, 2.5, 2]
+    fig, ax = plt.subplots()
+    ax.scatter(get_ratio, get_mins, linewidth=10)
+    ax.set_ylabel('mins to tumour ablation', fontsize=15)
+    ax.set_xlabel('Us / Ua ', fontsize=15)
+    ax.tick_params(axis='y', labelsize=15)
+    ax.tick_params(axis='x', labelsize=15)
     
     
-twenty_percent_above_below_lst = get_20_percent_high_and_low([2.2, 21.1], 1.5)    
+    ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
+    color = 'tab:red'
+    ax2.set_ylabel('Temperature ($^o$C)', color=color, fontsize=15)  # we already handled the x-label with ax1
+    ax2.scatter(get_ratio, [56, 67, 75], linewidth=10, color=color)
+    ax2.tick_params(axis='y', labelcolor=color, labelsize=15)
+    ax2.axis(ymin=50,ymax=80)
+    # ax2.legend(loc='upper right', fontsize=17)
     
-  
+    plt.show()
     
     
     
