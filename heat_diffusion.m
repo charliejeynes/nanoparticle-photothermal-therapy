@@ -45,35 +45,53 @@ close all
 % directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour2mm_power_changing_high_GNRs_3d/';
 % directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour4mm_power_changing_high_GNRs_3d/';
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_tumour6mm_power_changing_high_GNRs_3d/';
-%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_tumour_high_absorbance_3D/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_tumour_high_absorbance_3D/';
 %directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_optimised_power_tumour_as_flesh_3D/';
-directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power1W_4mmtumour_10^6photons/';
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power1W_4mmtumour_10^6photons/';
+% directory ='/Users/charliejeynes/Projects/dia/sim_data/spot6mm_power1W_tumourAllSizes_10^4photons_changingOpticalProps/';
+directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_powerChanging_tumour4mm_10^5photons_changingOpticalProps/'; 
+%directory = '/Users/charliejeynes/Projects/dia/sim_data/spot6mm_check_move_back_from_surface/'; 
+%directory ='/Users/charliejeynes/Projects/dia/sim_data/spot6mm_0.5W_tumour4mm_10^5photons_changingOpticalProps_pulsedBeam/';
+%this one with tumour as flesh nnever reach 50 degrees
+%directory ='/Users/charliejeynes/Projects/dia/sim_data/spot6mm_1W_tumour4mm_10^5photons_changingOpticalProps_pulsedBeam/';
+% directory ='/Users/charliejeynes/Projects/dia/sim_data/testing_focus_obj/'; 
+% directory
+% ='/Users/charliejeynes/Projects/dia/sim_data/2mmTumour_4mmDeep_changeOpticalprops/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/2mmTumour_6mmDeep_6mmBeam_changeOpticalprops/'; 
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/4mmTumour_surface_focus6m_loc3.1m_dim1m__changeOpticalprops/';
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/4mmTumour_surface_6mmBeam_1W_changeOpticalprops/'; 
+% directory = '/Users/charliejeynes/Projects/dia/sim_data/1mmSphereLED_in4mmtumour_changeOpticalProps/';
+    
 
-%visualise the .nc simualtion in 3D
+% %visualise the .nc simualtion in 3D
 [file_names, datacube] = visualise_in_3d(directory); 
 
 
-% file_names = get_file_paths(directory);
-% number_of_files = length(file_names); 
-% 
-% %run the simulation 3D
-% [cem43_list, temperature_image_list]= run_sim_3D_all_files_in_folder(directory, file_names, number_of_files); 
+file_names = get_file_paths(directory);
+number_of_files = length(file_names); 
+
+% run the simulation in 3D
+% [cem43_list, temperature_image_list, kdiff, cem43_cycle_count_list, time_steps_taken_list, final_cem_list, on_count_list, off_count_list] ...
+%               = run_sim_3D_all_files_in_folder(directory, file_names, number_of_files); 
 % 
 % %run the simulation 2D
 % %[cem43_list, temperature_image_list] = run_in_2D(directory, file_names, number_of_files);
 % 
-% % save cem43, temperature final temperature for python to read
-% save_sims_as_dotmat(cem43_list, temperature_image_list)
+% save cem43, temperature final temperature for python to read
+save_sims_as_dotmat(cem43_list, temperature_image_list)
 
 
 
-function [cem43_list, temperature_image_list] = run_sim_3D_all_files_in_folder(directory, file_names, number_of_files)
+function [cem43_list, temperature_image_list, kdiff, cem43_cycle_count_list, time_steps_taken_list, final_cem_list, on_count_list, off_count_list]...
+                                            = run_sim_3D_all_files_in_folder(directory, file_names, number_of_files)
 
+    
+                                        
     cem43_list = zeros(201, 201, number_of_files); 
     %temperature_image_list = cell(1,number_of_files); 
     temperature_image_list = zeros(201, 201, number_of_files); 
     
-    for i = 1:number_of_files
+     for i = 1:number_of_files
 
         % setup NOTE the grid resolution is set to 201 - change if this is not the
         % case in your simulations.
@@ -85,22 +103,30 @@ function [cem43_list, temperature_image_list] = run_sim_3D_all_files_in_folder(d
         %if going to run instead
         datacube = read_nc(file);
         
-        %run the simulation 3D
-        [cem43, temperature_image] = run_sim_in_3D(datacube); 
+        %run the simulation 3D PULSED BEAM
+        [cem43, temperature_image, kdiff, cem43_cycle_count, time_steps_taken, final_cem, on_count, off_count] = run_sim_in_3D(datacube); 
         
         %collect the data from each .nc file
         cem43_list(:, :, i) = cem43(:, :); 
 %         temperature_image_list{1, i} = temperature_image;
         temperature_image_list(:, :, i) = temperature_image(:, :);
+        cem43_cycle_count_list(:, i) = cem43_cycle_count;
+        time_steps_taken_list(:, i) = time_steps_taken; 
+        final_cem_list(:, i) = final_cem; 
+        on_count_list(:, i) = on_count; 
+        off_count_list(:, i) = off_count; 
     
     
     
     end
+    
+    
 
 end
 
 
-function [cem43, temperature_image] = run_sim_in_3D(datacube)
+
+function [cem43, temperature_image, kdiff, cem43_cycle_count, time_steps_taken, final_cem, on_count, off_count] = run_sim_in_3D(datacube)
     
     datacube = datacube; %(1:200, 1:200, 1:200); 
     mm_of_world = 20; 
@@ -167,10 +193,6 @@ function [cem43, temperature_image] = run_sim_in_3D(datacube)
     T0 = 37 .* ones(Nx, Ny, Nz); 
     source.T0 = T0; 
 
-    % testSource = zeros(65,65); 
-    % testSource(30:39, 20:30) = 5e6; 
-    % source.Q = testSource;
-
     source.Q = datacube; 
     % set input args
     input_args = {'PlotScale', [37, 50]};
@@ -184,83 +206,115 @@ function [cem43, temperature_image] = run_sim_in_3D(datacube)
 %     [input_args, source, sensor] = create_source_sensor(Nx, Ny, twoD_slice);
     % create kWaveDiffusion object
     kdiff = kWaveDiffusion(kgrid, medium, source, sensor, input_args{:} ); % inputs for kWaveDiffusion(kgrid, medium, source, sensor, input_args{:});
-   
     
+    % unHash this if continuous beam is needed  
     % take time steps (temperature can be accessed as kdiff.T)
 %     Nt=1; % Nt= time in seconds
-%     dt= 300;   % dt = step size
+%     dt=300;   % dt = step size
 %     kdiff.takeTimeStep(Nt, dt); % .takeTimeStep(Nt, dt) 
+%     % plot the current temperature field
+%     figure;
+%     kdiff.plotTemp;    
     
-% 
-% 
-%         % take time steps
-%         kdiff.takeTimeStep(round(on_time / dt), dt);
-% 
-%         % store the current temperature field
-%         T1 = kdiff.T;
-% 
-%         % turn off heat source and take time steps
-%         kdiff.Q = 0;
-%         kdiff.takeTimeStep(round(off_time / dt), dt);
-% 
-%         % store the current temperature field
-%         T2 = kdiff.T;
- 
+    cem43_cycle_count = [1];  % this is to to give the function something when not using the pulsed beam version
+    time_steps_taken = [1];  
+    final_cem = [1]; 
+        
+%  Unhash this if pulsing the beam is wanted 
+    [kdiff, cem43_cycle_count, time_steps_taken, final_cem, on_count, off_count] = count_up_to_50_degrees(kdiff, datacube); 
+    
+    temperature_image = kdiff.T(:, :, 100); 
+    cem43 = kdiff.cem43(:, :, 100); 
+    
+
+    
+    
+  
+end 
+
+
+function [kdiff, cem43_cycle_count, time_steps_taken, final_cem, on_count, off_count] = count_up_to_50_degrees(kdiff, datacube)
+
+        back_of_tumour = 100; 
+        middle_of_tumour = 130; 
         % set source on time and off time
         on_time = 1; % [s]
         off_time = 1; % [s]
 
         % set time step size
-        dt = 30;
+        dt = 2;
+        
+%         number_on_off_cycles = 1; 
+%         kdiff_temperature_timepoints_on = zeros(201, 201, 201, number_on_off_cycles); 
+%         kdiff_temperature_timepoints_off = zeros(201, 201, 201, number_on_off_cycles);
+%         
+%         kdiff_cem43_timepoints_on = zeros(201, 201, 201, number_on_off_cycles); 
+%         kdiff_cem43_timepoints_off = zeros(201, 201, 201, number_on_off_cycles);
         
         
-        for i=1:3
+        kdiff.takeTimeStep(on_time, dt);
+        disp('cem43 after 1 step'); kdiff.cem43(back_of_tumour, 100, 100)
+        
+        cem43_cycle_count = 0;  % except the first round which has had an extra round to initiate k.diff heating cycle
+        on_count = 0;
+        off_count = 0;
+        
+        while kdiff.cem43(back_of_tumour, 100, 100) < 241
             
-            kdiff.Q = datacube;
-            kdiff.takeTimeStep(on_time, dt);
-            kdiff.Q = 0;
-            kdiff.takeTimeStep(off_time, dt)
+            disp('cem43'); kdiff.cem43(back_of_tumour, 100, 100)
+
+            while kdiff.T(middle_of_tumour, 100, 100) < 200 
+                if kdiff.cem43(back_of_tumour, 100, 100) > 241
+                    break
+                end
+                kdiff.Q = datacube;
+                kdiff.takeTimeStep(on_time, dt);
+                kdiff.T(middle_of_tumour, 100, 100) 
+                on_count = on_count + 1    
+                disp('cem43'); kdiff.cem43(back_of_tumour, 100, 100)
+            end
+            
+             
+            while kdiff.T(middle_of_tumour, 100, 100) > 45
+                if kdiff.cem43(back_of_tumour, 100, 100) > 241
+                    break
+                end
+                kdiff.Q = 0; 
+                kdiff.takeTimeStep(off_time, dt);
+                kdiff.T(middle_of_tumour, 100, 100) 
+                off_count = off_count + 1    
+            end
+            
+            
+            
+%             kdiff_temperature_timepoints_on(:, :, :, i) = kdiff.T;
+%             kdiff_temperature_cem_on(:, :, :, i) = kdiff.cem43;
+%             figure;
+%             kdiff.plotTemp;
+%             kdiff.Q = 0;
+%             kdiff.takeTimeStep(off_time, dt)
+%             kdiff_temperature_timepoints_off(:, :, :, i) = kdiff.T;
+%             kdiff_temperature_cem_off(:, :, :, i) = kdiff.cem43;
+%             figure;
+%             kdiff.plotTemp;
+
+        cem43_cycle_count = cem43_cycle_count + 1 
             
         end
-            
-            
-         
-    
-    % % plot the current temperature field
-    figure;
-    kdiff.plotTemp;
-    
-    temperature_image = kdiff.T(:, :, 100); 
-    cem43 = kdiff.cem43(:, :, 100); 
+        
+        disp('cem43, final cem43 count cycles and time steps taken'); 
+        final_cem = kdiff.cem43(back_of_tumour, 100, 100)
+        
+        
+        time_steps_taken = kdiff.time_steps_taken
+        
+        
 
-    xslice = []
-    yslice = []
-    zslice = [100]
+end
 
-    hss = slice(kdiff.T,xslice,yslice,zslice); 
-    xs = get(hss,'XData');
-    ys = get(hss,'YData');
-    zs = get(hss,'ZData');
-    cs = get(hss,'CData');
-    
-    figure, 
-    imagesc(cs)
-    title('cs')
-    
-    figure, 
-    imagesc(temperature_image)
-    title('temperature')
-    size(temperature_image)
-    figure, 
-    imagesc(cem43)
-    title('cem43')
-    
-    caxis([37,50])% create and label the colorbar
-    cmap = jet();
-    cb=colorbar;
-    cb.Label.String = 'cem43';
-    
-end 
+
+
+
 
 
 function [cem43_list, temperature_image_list] = run_in_2D(directory, file_names, number_of_files)
@@ -556,7 +610,7 @@ function image_cem43(cem43, number_of_files)
     title('Cumulative minutes at 43^o C')
     for i=1:number_of_files
         subplot(1, number_of_files, i)
-        imagesc(cem43(:, :, i))
+        imagesc(cem43_list(:, :, i))
         %caxis([0,7])% create and label the colorbar
         %caxis([0,2500])% create and label the colorbar
         cmap = jet();
@@ -751,7 +805,8 @@ function [file_names, datacube] = visualise_in_3d(directory)
         
         set(gcf, 'InvertHardCopy', 'off'); 
         set(gcf,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
-        saveas(gcf,'Peaks.png'); % save as .png file
+        imageNumber = num2str(i); 
+        saveas(gcf, [imageNumber 'current3Dimage.png']); % save as .png file
 
         
 %         hold on
@@ -796,6 +851,35 @@ function [file_names, datacube] = visualise_in_3d(directory)
 end
 
 
+function plot_cem43_over_time_pulsed_beam(kdiff_temperature_cem_on, kdiff_temperature_cem_off)
+
+        for i=1:3
+            
+            figure, 
+            imagesc(kdiff_temperature_cem_on(:, :, 100, i))
+            figure, 
+            imagesc(kdiff_temperature_cem_off(:, :, 100, i)) 
+         
+        end
+        
+end 
+
+
+function get_temperatureImage_and_cemList()
+
+    tumour_as_flesh_pulsed_results_temp = temperature_image_list(: ,:, 1); 
+    tumour_as_flesh_pulsed_results_cem = cem43_list(: ,:, 1); 
+    
+    save('tumour_as_flesh_pulsed_results.mat', 'tumour_as_flesh_pulsed_results_temp', 'tumour_as_flesh_pulsed_results_cem')
+
+end 
+
+function merge_cem_and_temp()
+
+   cem43_list(:, :, 1) =  tumour_as_flesh_pulsed_results_cem; 
+   temperature_image_list(: ,:, 1) = tumour_as_flesh_pulsed_results_temp; 
+   
+end 
 % function six_minutes = get_temperature_data(temperature_image)
 % 
 %     six_minutes = temperature_image{1,10}
